@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/11/21 16:58:09 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2024/11/25 14:48:04 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@ Server::Server(std::string const &ip, std::string const &port) : _ip(ip), _port(
     if (_listening == -1)
     {
         std::cerr << "Can't create a socket! Quitting" << std::endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     sockaddr_in hint;
     hint.sin_family = AF_INET;
@@ -28,13 +28,13 @@ Server::Server(std::string const &ip, std::string const &port) : _ip(ip), _port(
     if (bind(_listening, (sockaddr *)&hint, sizeof(hint)) == -1)
     {
         std::cerr << "Can't bind to IP/port" << std::endl;
-        exit(2);
+        exit(EXIT_FAILURE);
     }
     
     if (listen(_listening, SOMAXCONN) == -1)
     {
         std::cerr << "Can't listen!" << std::endl;
-        exit(3);
+        exit(EXIT_FAILURE);
     }
     
     
