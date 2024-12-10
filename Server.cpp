@@ -6,13 +6,13 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/11/25 14:48:04 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2024/12/10 15:05:24 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
-Server::Server(std::string const &ip, std::string const &port) : _ip(ip), _port(port)
+Server::Server(std::string const &port, std::string const &pass) : _port(port), _pass(pass)
 {
     _listening = socket(AF_INET, SOCK_STREAM, 0);
     if (_listening == -1)
@@ -23,7 +23,7 @@ Server::Server(std::string const &ip, std::string const &port) : _ip(ip), _port(
     sockaddr_in hint;
     hint.sin_family = AF_INET;
     hint.sin_port = htons(std::stoi(port));
-    inet_pton(AF_INET, ip.c_str(), &hint.sin_addr);
+    inet_pton(AF_INET, port.c_str(), &hint.sin_addr);
 
     if (bind(_listening, (sockaddr *)&hint, sizeof(hint)) == -1)
     {

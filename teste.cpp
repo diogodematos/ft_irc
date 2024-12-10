@@ -6,7 +6,6 @@
 # include <arpa/inet.h>
 # include <sys/socket.h>
 # include <netdb.h>
-# testetsttstetts
 
 int main(int argc, char **argv)
 {
