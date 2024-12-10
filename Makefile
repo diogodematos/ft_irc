@@ -1,6 +1,7 @@
 NAME = ircserv
 
-SRC =  main.cpp\
+SRC = Server.cpp main.cpp\
+//SRC = teste.cpp
 	
 CXX = c++ -g 
 RM = rm -rf
