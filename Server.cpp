@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/12/10 19:22:39 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2024/12/12 15:58:39 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 Server::Server(std::string const &port, std::string const &pass) : _pass(pass)
 {
-    int _port = std::atoi(port.c_str());
+    _port = std::atoi(port.c_str());
     int _opt = 1;
     
     //Create a socket
@@ -27,7 +27,7 @@ Server::Server(std::string const &port, std::string const &pass) : _pass(pass)
     //Configure the socket for reuse
     if (setsockopt(_listening, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &_opt, sizeof(_opt)) == -1)
     {
-        //close(_listening);
+        close(_listening);
         throw std::runtime_error("Can't set socket options! Quitting");
     }
     
@@ -35,20 +35,29 @@ Server::Server(std::string const &port, std::string const &pass) : _pass(pass)
     std::memset(&address, 0, sizeof(address));
     address.sin_family = AF_INET; // Set the address family to IPv4
     address.sin_addr.s_addr = INADDR_ANY; // Bind to all available interfaces
-    inet_pton(AF_INET, port.c_str(), &address.sin_addr); // Convert the port to network byte order
+    address.sin_port = htons(_port); // Convert the port to network byte order
 
-    if (bind(_listening, (sockaddr *)&address, sizeof(address)) == -1)
+    //Bind the socket to IP/port
+    if (bind(_listening, (struct sockaddr *)&address, sizeof(address)) == -1)
     {
-        std::cerr << "Can't bind to IP/port" << std::endl;
-        exit(EXIT_FAILURE);
+        close(_listening);
+        throw std::runtime_error("Can't bind to IP/port");
     }
     
+    //Mark the socket for listening in
     if (listen(_listening, SOMAXCONN) == -1)
     {
-        std::cerr << "Can't listen!" << std::endl;
-        exit(EXIT_FAILURE);
+        close(_listening);
+        throw std::runtime_error("Can't listen!");
     }
-    
+
+    //Add the server socket to the poll
+    struct pollfd _poll_listener;
+    _poll_listener.fd = _listening;
+    _poll_listener.events = POLLIN;
+    _poll_listeners.push_back(_poll_listener);
+
+    std::cout << "Server is listening on port " << _port << std::endl;
     
 }
 
