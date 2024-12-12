@@ -5,5 +5,9 @@ the client class helps track and enforce these states to ensure smooth server op
 The client/server communication will be TCP/IP (v4 or v6)
 
 
+ENVIAR/RECEBER INFORMACAO
+You make a call to the socket()
+system routine. It returns the socket descriptor, and you communicate through it using the specialized
+send() and recv() (man send, man recv) socket calls.
 
 ler sobre IRC - https://ircv3.net/irc/
