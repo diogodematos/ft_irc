@@ -1,0 +1,9 @@
+As users progress through the connection lifecycle—from initial connection,
+to setting their nickname and username, and finally registering with the server —
+the client class helps track and enforce these states to ensure smooth server operations 
+
+The client/server communication will be TCP/IP (v4 or v6)
+
+
+
+ler sobre IRC - https://ircv3.net/irc/
