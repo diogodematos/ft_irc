@@ -1,0 +1,13 @@
+As users progress through the connection lifecycle—from initial connection,
+to setting their nickname and username, and finally registering with the server —
+the client class helps track and enforce these states to ensure smooth server operations 
+
+The client/server communication will be TCP/IP (v4 or v6)
+
+
+ENVIAR/RECEBER INFORMACAO
+You make a call to the socket()
+system routine. It returns the socket descriptor, and you communicate through it using the specialized
+send() and recv() (man send, man recv) socket calls.
+
+ler sobre IRC - https://ircv3.net/irc/
