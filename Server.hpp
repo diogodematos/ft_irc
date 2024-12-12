@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:35:01 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/12/12 15:10:53 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2024/12/12 18:43:02 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,8 +32,9 @@ class Server
         
         int _port;
         std::string _pass;
-        int _listening;
-        std::vector<struct pollfd> _poll_listeners;
+        int _server_socket;
+        int _client_socket;
+        std::vector<struct pollfd> _poll_fds;
         struct sockaddr_in address;
         
 
@@ -42,7 +43,7 @@ class Server
     public:
         Server(std::string const &port, std::string const &pass);
         ~Server();
-        //void run();
+        void run();
     
 };
 

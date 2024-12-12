@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/13 14:01:03 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/12/10 18:27:20 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2024/12/12 18:40:38 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,7 +44,7 @@ int main(int argc, char **argv)
         try
         {
             Server myirc(argv[1], argv[2]);
-            //myirc.run();
+            myirc.run();
         }
         catch(const std::exception& e)
         {
