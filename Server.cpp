@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/12/12 18:45:52 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2024/12/17 17:35:40 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,10 +53,10 @@ Server::Server(std::string const &port, std::string const &pass) : _pass(pass)
     }
 
     //Add the server socket to the poll
-    /*struct pollfd _poll_listener;
+    struct pollfd _poll_listener;
     _poll_listener.fd = _server_socket;
     _poll_listener.events = POLLIN;
-    _poll_fds.push_back(_poll_listener);*/
+    _poll_fds.push_back(_poll_listener);
 
     std::cout << "Server is listening on port " << _port << std::endl;
     
@@ -73,10 +73,50 @@ void Server::run()
 {
     while (1)
     {
-        _client_socket = accept(_server_socket, NULL, NULL);
+        int poll_c = poll(_poll_fds.data(), _poll_fds.size(), -1);
+        if (poll_c == -1)
+        {
+            std::cerr << "Poll failed" << std::endl;
+            break;
+        }
+        
+        for (unsigned int i = 0; i < _poll_fds.size(); i++)
+        {
+            if(_poll_fds[i].revents & POLLIN)
+            {
+                if (_poll_fds[i].fd == _server_socket)
+                {
+                    //int new_socket;
+                    struct sockaddr_in client_addr;
+                    socklen_t client_len = sizeof(client_addr);
+                    if ((_client_socket = accept(_server_socket, (struct sockaddr *)&client_addr, &client_len)) == -1)
+                    {
+                        std::cerr << "Accept failed" << std::endl;
+                        continue;
+                    }
+                    
+                    std::cout << "New connection from " << _client_socket << std::endl;
 
-    char buffer[1024] = {0};
-    recv(_client_socket, buffer, sizeof(buffer), 0);
-    std::cout << "Mensagem do cliente: " << buffer << std::endl;
+                    struct pollfd _poll_client;
+                    _poll_client.fd = _client_socket;
+                    _poll_client.events = POLLIN;
+                    _poll_fds.push_back(_poll_client);
+                }
+
+                else
+                {
+                    char buffer[1024] = {0};
+                    int valread = read(_poll_fds[i].fd, buffer, 1024);
+                    if (valread == 0)
+                    {
+                        std::cout << "Client disconnected" << std::endl;
+                        close(_poll_fds[i].fd);
+                        _poll_fds.erase(_poll_fds.begin() + i);
+                    }
+                    else
+                        std::cout << "Message from client: " << buffer << std::endl;
+                }
+            }
+        }
     }
 }
