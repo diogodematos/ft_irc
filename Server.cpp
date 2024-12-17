@@ -79,7 +79,7 @@ void Server::run()
             std::cerr << "Poll failed" << std::endl;
             break;
         }
-        
+
         for (unsigned int i = 0; i < _poll_fds.size(); i++)
         {
             if(_poll_fds[i].revents & POLLIN)
@@ -94,13 +94,16 @@ void Server::run()
                         std::cerr << "Accept failed" << std::endl;
                         continue;
                     }
-                    
+
                     std::cout << "New connection from " << _client_socket << std::endl;
 
                     struct pollfd _poll_client;
                     _poll_client.fd = _client_socket;
                     _poll_client.events = POLLIN;
                     _poll_fds.push_back(_poll_client);
+
+					//add a client to the map
+					_clients[_client_socket] = Client();
                 }
 
                 else
@@ -111,12 +114,72 @@ void Server::run()
                     {
                         std::cout << "Client disconnected" << std::endl;
                         close(_poll_fds[i].fd);
+						_clients.erase(_poll_fds[i].fd);
                         _poll_fds.erase(_poll_fds.begin() + i);
+						i--;
                     }
-                    else
-                        std::cout << "Message from client: " << buffer << std::endl;
+					//message is received
+                    else {
+						std::string msg(buffer, valread);
+						_clients[_poll_fds[i].fd].bufferAppend(msg);
+
+						//process full lines of inputs (command)
+						size_t pos;
+						while ((pos = _clients[_poll_fds[i].fd].buffer().find("\r\n")) != std::string::npos) {
+							std::string command = _clients[_poll_fds[i].fd].buffer().substr(0, pos);
+							_clients[_poll_fds[i].fd].bufferAppend(_clients[_poll_fds[i].fd].buffer().substr(pos + 2));
+							handleClientMsg(_poll_fds[i].fd, command);
+							}
+
+						//The IRC protocol specifies that commands are terminated by \r\n
+
+						//append msg to the client buffer
+						_clients[_poll_fds[i].fd].bufferAppend(msg);
+
+						//example:  echo message back to client
+						send(_poll_fds[i].fd, buffer, valread, 0);
+					}
                 }
             }
         }
     }
+}
+
+void Server::handleClientMsg(int fd, const std::string &msg) {
+	std::istringstream iss(msg);
+	std::string command;
+	iss >> command; //here it will extract the command
+
+	if (command == "NICK") {
+		std::string nickname;
+		iss >> nickname; //get the nickname argument
+		_clients[fd].setNickname(nickname);
+		std::cout << "Client: " << fd << " set nickname to: " << _clients[fd].getNickname() << std::endl;
+	}
+	else if (command == "USER") {
+		std::string username, hostname, serverName, realname;
+		iss >> username >> hostname >> serverName;
+		std::getline(iss, realname); //this step is because real name can contain spaces
+		_clients[fd].setUsername(username);
+		_clients[fd].setHostname(hostname);
+		_clients[fd].setRealName(realname);
+		std::cout << "Client " << fd << " set USER info." << std::endl;
+	}
+	else if (command == "PING") {
+		std::string token;
+		iss >> token;
+		std::string response = "PONG " + token + "\r\n";
+		send(fd, response.c_str(), response.length(), 0);
+		std::cout << "Responded to PING with PONG." << std::endl;
+	}
+	else {
+		std::cout << "Unknown command from client " << fd << ": " << msg << std::endl;
+	}
+
+	//checking if client is ready to authenticate
+	if (_clients[fd].isReadyToRegister() && !_clients[fd].getAutheticated()) {
+		_clients[fd].setAuthenticated(true);
+		std::string welcome = "Welcome to the IRC server, " + _clients[fd].getNickname() + "!\r\n";
+		send(fd, welcome.c_str(), welcome.length(), 0);
+	}
 }

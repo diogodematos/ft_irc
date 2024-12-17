@@ -25,6 +25,10 @@
 # include <unistd.h>
 # include <vector>
 # include <poll.h>
+# include <map>
+# include "client/client.hpp"
+
+class Client;
 
 class Server
 {
@@ -35,6 +39,7 @@ class Server
         int _server_socket;
         int _client_socket;
         std::vector<struct pollfd> _poll_fds;
+		std::map<int, Client> _clients;
         struct sockaddr_in address;
         
 
@@ -44,7 +49,7 @@ class Server
         Server(std::string const &port, std::string const &pass);
         ~Server();
         void run();
-    
+    	void handleClientMsg(int fd, const std::string &msg);
 };
 
 #endif

@@ -1,6 +1,8 @@
 NAME = ircserv
 
-SRC = Server.cpp main.cpp\
+SRC = main.cpp\
+		Server.cpp \
+		client/client.cpp \
 #SRC = teste.cpp
 	
 CXX = c++ -g 
@@ -13,9 +15,17 @@ OBJ = $(SRC:%.cpp=%.o)
 all: $(NAME)
 
 $(NAME): $(OBJ)
-			@$(CXX) $(CXXFLAGS) $(OBJ) -o $(NAME)
-			clear
-			
+		@$(CXX) $(CXXFLAGS) $(OBJ) -o $(NAME)
+		clear
+		echo "  ______ _______   _____ _____   _____ ";
+		echo " |  ____|__   __| |_   _|  __ \ / ____|";
+		echo " | |__     | |      | | | |__) | |     ";
+		echo " |  __|    | |      | | |  _  /| |     ";
+		echo " | |       | |     _| |_| | \ \| |____ ";
+		echo " |_|       |_|    |_____|_|  \_\\_____|";
+		echo "                                       ";
+		echo "                                       ";
+
 clean:
 		@$(RM) $(OBJ)
 		
@@ -23,3 +33,5 @@ fclean: clean
 		@$(RM) $(NAME)
 		
 re: fclean all
+
+.SILENT:

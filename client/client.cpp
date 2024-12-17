@@ -1,12 +1,12 @@
 #include "client.hpp"
 
-Client::Client(int fd) {
+Client::Client() {
 	_username = "";
 	_nickname = "";
 	_hostname = "";
 	_realName = "";
 	_buffer = "";
-	_fd = fd;
+	_fd = -1;
 	_authState = false;
 	_socketClient = -1;
 }
@@ -19,24 +19,28 @@ int Client::getFd() const {
 	return _fd;
 }
 
-const std::string Client::getUsername() {
+const std::string Client::getUsername() const{
 	return _username;
 }
 
-const std::string Client::getNickname() {
+const std::string Client::getNickname() const{
 	return _nickname;
 }
 
-const std::string Client::getHostname() {
+const std::string Client::getHostname() const{
 	return _hostname;
 }
 
-const std::string Client::getRealName() {
+const std::string Client::getRealName() const{
 	return _realName;
 }
 
-const std::string Client::buffer() {
+const std::string Client::buffer() const{
 	return _buffer;
+}
+
+bool Client::getAutheticated() const {
+	return _authState;
 }
 
 void Client::setUsername(const std::string &username) {
@@ -60,7 +64,7 @@ void Client::setAuthenticated(bool state) {
 }
 
 void Client::bufferAppend(const std::string &data) {
-	_buffer = data;
+	_buffer += data;
 }
 
 void Client::clearBuffer() {
@@ -68,6 +72,6 @@ void Client::clearBuffer() {
 }
 
 //determines if client is readu to fully register on server
-bool Client::readyToRegist() const {
+bool Client::isReadyToRegister() const {
 	return !_nickname.empty() && !_username.empty();
 }

@@ -15,16 +15,17 @@ class Client {
 		int			_socketClient;
 
 	public:
-		Client(int fd);
+		Client();
 		~Client();
 
 		//getters
 		int					getFd() const;
-		const std::string	getUsername();
-		const std::string	getNickname();
-		const std::string	getHostname();
-		const std::string	getRealName();
-		const std::string	buffer();
+		const std::string	getUsername() const;
+		const std::string	getNickname() const;
+		const std::string	getHostname() const;
+		const std::string	getRealName() const;
+		const std::string	buffer() const;
+		bool				getAutheticated() const;
 
 		//setters
 		void setUsername(const std::string &username);
@@ -38,7 +39,7 @@ class Client {
 		void clearBuffer();
 
 		//UTILS
-		bool readyToRegist() const;
+		bool isReadyToRegister() const;
 };
 
 #endif
