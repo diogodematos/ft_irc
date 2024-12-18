@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:35:01 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/12/17 16:16:15 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2024/12/18 15:31:55 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@
 # include <poll.h>
 # include <map>
 # include "client/client.hpp"
+#include <algorithm>
 
 class Client;
 

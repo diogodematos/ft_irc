@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/12/17 17:35:40 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2024/12/18 16:21:58 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -120,7 +120,13 @@ void Server::run()
                     }
 					//message is received
                     else {
-						std::string msg(buffer, valread);
+						
+                        std::string msg(buffer);
+                        handleClientMsg(_poll_fds[i].fd, msg);
+                        //std::cout << "Message from client " << _poll_fds[i].fd << ": " << buffer << std::endl;
+                        _clients[_poll_fds[i].fd].bufferAppend(msg);
+                        send(_poll_fds[i].fd, buffer, valread, 0);
+                        /*std::string msg(buffer, valread);
 						_clients[_poll_fds[i].fd].bufferAppend(msg);
 
 						//process full lines of inputs (command)
@@ -137,7 +143,7 @@ void Server::run()
 						_clients[_poll_fds[i].fd].bufferAppend(msg);
 
 						//example:  echo message back to client
-						send(_poll_fds[i].fd, buffer, valread, 0);
+						send(_poll_fds[i].fd, buffer, valread, 0);*/
 					}
                 }
             }
@@ -145,8 +151,72 @@ void Server::run()
     }
 }
 
-void Server::handleClientMsg(int fd, const std::string &msg) {
-	std::istringstream iss(msg);
+void Server::handleClientMsg(int fd, const std::string &msg)
+{
+	
+    if (msg.rfind("PASS", 0) == 0)
+    {
+        std::string pass = msg.substr(5);
+        if (pass != _pass)
+        {
+            send(fd, "Error: Wrong Password\r\n", 25,0);
+            close(fd);
+            for (std::vector<pollfd>::iterator it = _poll_fds.begin(); it != _poll_fds.end(); ++it)
+            {
+                if (it->fd == fd)
+                {
+                    _poll_fds.erase(it);
+                    break;
+                }
+            }
+            _clients.erase(fd);
+        }
+        else
+        {
+            _clients[fd].setAuthenticated(true);
+        }
+    }
+    else if (msg.rfind("NICK", 0) == 0)
+    {
+        std::string nickname = msg.substr(5);
+        _clients[fd].setNickname(nickname);
+        std::cout << "Client: " << fd << " set nickname to: " << _clients[fd].getNickname() << std::endl;
+        std::string welcome = "Welcome to the IRC server, " + _clients[fd].getNickname() + "!\r\n";
+        send(fd, welcome.c_str(), welcome.length(), 0);
+    }
+    else if (msg.rfind("USER", 0) == 0)
+    {
+        std::istringstream iss(msg);
+        std::string command;
+        iss >> command;
+        std::string username, hostname, serverName, realname;
+        iss >> username >> hostname >> serverName;
+        std::getline(iss, realname);
+        _clients[fd].setUsername(username);
+        _clients[fd].setHostname(hostname);
+        _clients[fd].setRealName(realname);
+        std::cout << "Client " << fd << " set USER info." << std::endl;
+        std::string welcome = "Welcome to the IRC server, " + _clients[fd].getNickname() + "!\r\n";
+        send(fd, welcome.c_str(), welcome.length(), 0);
+    }
+    else if (msg.rfind("PING", 0) == 0)
+    {
+        std::string token = msg.substr(5);
+        std::string response = "PONG " + token + "\r\n";
+        send(fd, response.c_str(), response.length(), 0);
+        std::cout << "Responded to PING with PONG." << std::endl;
+    }
+    else
+    {
+        std::cout << "Unknown command from client " << fd << ": " << msg << std::endl;
+    }
+    return ;
+
+    
+    
+    
+    
+    /*std::istringstream iss(msg);
 	std::string command;
 	iss >> command; //here it will extract the command
 
@@ -181,5 +251,5 @@ void Server::handleClientMsg(int fd, const std::string &msg) {
 		_clients[fd].setAuthenticated(true);
 		std::string welcome = "Welcome to the IRC server, " + _clients[fd].getNickname() + "!\r\n";
 		send(fd, welcome.c_str(), welcome.length(), 0);
-	}
+	}*/
 }
