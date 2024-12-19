@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:35:01 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/12/18 15:31:55 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2024/12/19 17:51:38 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,6 +42,7 @@ class Server
         std::vector<struct pollfd> _poll_fds;
 		std::map<int, Client> _clients;
         struct sockaddr_in address;
+
         
 
         //void setupServer(int port);
