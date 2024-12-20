@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/12/20 12:31:41 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2024/12/20 13:47:16 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -119,17 +119,10 @@ void Server::run()
 						i--;
                     }
 					//message is received
-                    else {
-						
+                    else 
+                    {
                         std::string msg(buffer);
-                        //std::cout << msg + " ------teste------" << std::endl;
                         command(_poll_fds[i].fd, msg);
-                        //_clients[_poll_fds[i].fd].bufferAppend(msg);
-                        //send(_poll_fds[i].fd, buffer, valread, 0);
-
-						//The IRC protocol specifies that commands are terminated by \r\n
-
-					
 					}
                 }
             }
@@ -153,7 +146,8 @@ void Server::command(int fd, std::string &msg)
 void Server::handleClientMsg(int fd, std::string &msg)
 {
     
-    
+    if (msg.rfind("CAP ", 0) == 0)
+        return ;
     if (!_clients[fd].getAutheticated())
     {
         if (msg.rfind("PASS ", 0) == 0)
