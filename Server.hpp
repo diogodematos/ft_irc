@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:35:01 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/12/19 17:51:38 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2024/12/20 11:47:24 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,7 +51,8 @@ class Server
         Server(std::string const &port, std::string const &pass);
         ~Server();
         void run();
-    	void handleClientMsg(int fd, const std::string &msg);
+    	void handleClientMsg(int fd, std::string &msg);
+        void command(int fd, std::string &msg);
 };
 
 #endif
