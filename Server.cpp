@@ -6,15 +6,19 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/12/20 13:47:16 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2024/12/23 13:24:20 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
+
+int Server::_active = 1;
+
 //Start the server
 Server::Server(std::string const &port, std::string const &pass) : _pass(pass)
 {
+    _active = 1;
     _port = std::atoi(port.c_str());
     int _opt = 1;
     
@@ -71,9 +75,24 @@ Server::~Server()
 //Run the server
 void Server::run()
 {
-    while (1)
+    while (_active == 1)
     {
+        std::signal(SIGINT, Server::signalHandler);
+        std::signal(SIGTSTP, Server::signalHandler);
+        
+        //ignore date sent to a closed socket
+        struct sigaction sa;
+        sa.sa_handler = SIG_IGN;
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = 0;
+        sigaction(SIGPIPE, &sa, NULL);
+        
         int poll_c = poll(_poll_fds.data(), _poll_fds.size(), -1);
+        if (poll_c == -1 && !_active)
+        {
+            std::cerr << "Server shutting down gracefully." << std::endl;
+            break;
+        }
         if (poll_c == -1)
         {
             std::cerr << "Poll failed" << std::endl;
@@ -219,3 +238,13 @@ void Server::handleClientMsg(int fd, std::string &msg)
         }
     }
 }
+
+void Server::signalHandler(int sig)
+{
+    if (sig == SIGINT)
+    {
+        _active = 0;
+        std::cout << "\nCrtl + C called\r" << std::endl;
+    }
+}
+

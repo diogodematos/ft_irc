@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:35:01 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/12/20 11:47:24 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2024/12/23 11:49:53 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,8 @@
 # include <poll.h>
 # include <map>
 # include "client/client.hpp"
-#include <algorithm>
+# include <algorithm>
+# include <csignal>
 
 class Client;
 
@@ -35,6 +36,7 @@ class Server
 {
     private:
         
+        static int _active;
         int _port;
         std::string _pass;
         int _server_socket;
@@ -53,6 +55,8 @@ class Server
         void run();
     	void handleClientMsg(int fd, std::string &msg);
         void command(int fd, std::string &msg);
+        static void signalHandler(int sig);
+        void SignalDown();
 };
 
 #endif
