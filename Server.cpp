@@ -59,6 +59,7 @@ Server::Server(std::string const &port, std::string const &pass) : _pass(pass)
 	//Add the server socket to the poll
 	struct pollfd _poll_listener;
 	_poll_listener.fd = _server_socket;
+	_poll_listener.revents = 0;
 	_poll_listener.events = POLLIN;
 	_poll_fds.push_back(_poll_listener);
 
@@ -87,6 +88,13 @@ void Server::run()
 		sigaction(SIGPIPE, &sa, NULL);
 
 		int poll_c = poll(_poll_fds.data(), _poll_fds.size(), -1);
+
+		if (poll_c == 0)
+		{
+			// Poll timed out
+			continue;
+		}
+
 		if (poll_c == -1 && !_active)
 		{
 			std::cerr << "Server shutting down gracefully." << std::endl;
@@ -112,16 +120,16 @@ void Server::run()
 						std::cerr << "Accept failed" << std::endl;
 						continue;
 					}
-
 					std::cout << "New connection from " << _client_socket << std::endl;
 
 					struct pollfd _poll_client;
 					_poll_client.fd = _client_socket;
 					_poll_client.events = POLLIN;
+					_poll_client.revents = 0;
 					_poll_fds.push_back(_poll_client);
 
 					//add a client to the map
-					_clients[_client_socket] = Client();
+					_clients[_client_socket] = Client(_client_socket);
 				}
 				else
 				{
@@ -240,7 +248,7 @@ void Server::handleClientMsg(int fd, std::string &msg)
 			_channels[channelName].addClient(&_clients[fd]);
 			std::string response = "Joined Channel " + channelName + "\r\n";
 			send(fd, response.c_str(), response.size(), 0);
-			std::cout << "Client " << fd << " joined channel " << channelName << "." << std::endl;
+			std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << channelName << "." << std::endl;
 		}
 		else if (msg.rfind("PART ", 0) == 0) {
 			std::string channelName = msg.substr(5);

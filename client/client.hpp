@@ -16,6 +16,7 @@ class Client {
 
 	public:
 		Client();
+		Client(int fd);
 		~Client();
 
 		//getters

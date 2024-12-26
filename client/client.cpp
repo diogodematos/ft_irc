@@ -11,6 +11,17 @@ Client::Client() {
 	_socketClient = -1;
 }
 
+Client::Client(int fd) {
+	_username = "";
+	_nickname = "";
+	_hostname = "";
+	_realName = "";
+	_buffer = "";
+	_fd = fd;
+	_authState = false;
+	_socketClient = -1;
+}
+
 Client::~Client() {
 	//Destructor
 }
