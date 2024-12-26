@@ -36,7 +36,7 @@ class Channel;
 
 class Server
 {
-    private:
+private:
 		std::string _pass;
 		static int _active;
 		int _port;
@@ -47,16 +47,16 @@ class Server
 		std::map<int, Client> _clients;
 		std::map<std::string, Channel> _channels; //map of channel name to channel object
 
-        //void setupServer(int port);
-    
-    public:
-        Server(std::string const &port, std::string const &pass);
-        ~Server();
-        void run();
-    	void handleClientMsg(int fd, std::string &msg);
-        void command(int fd, std::string &msg);
-        static void signalHandler(int sig);
-        void SignalDown();
+		//void setupServer(int port);
+
+	public:
+		Server(std::string const &port, std::string const &pass);
+		~Server();
+		void run();
+		void handleClientMsg(int fd, std::string &msg);
+		void command(int fd, std::string &msg);
+		static void signalHandler(int sig);
+		void SignalDown();
 };
 
 #endif

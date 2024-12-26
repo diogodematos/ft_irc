@@ -1,5 +1,7 @@
 #include "channel.hpp"
 
+Channel::Channel() {}
+
 Channel::Channel(const std::string &name) {
 	_nameChannel = name;
 	_topicChannel = "";
@@ -16,7 +18,7 @@ const std::string &Channel::getTopicChannel() const {
 }
 
 const std::map<int, Client*> &Channel::getClients() const {
-	return _clients;
+	return _clientsCha;
 }
 
 const std::vector<int> &Channel::getOperators() const {
@@ -27,16 +29,21 @@ void Channel::setTopic(const std::string &topic) {
 	_topicChannel = topic;
 }
 
-void Channel::addClient(Client &client) {
-	_clients[client.getFd()] = &client;
+void Channel::addClient(Client *client) {
+	if (client) {
+		_clientsCha[client->getFd()] = client; // Store the pointer
+		std::cout << "Client " << client->getFd() << " added to channel." << std::endl;
+	} else {
+		std::cerr << "Error: Attempted to add a null client to the channel." << std::endl;
+	}
 }
 
 void Channel::removeClient(int fd) {
-	_clients.erase(fd);
+	_clientsCha.erase(fd);
 }
 
 bool Channel::hasClient(int fd) const {
-	return _clients.find(fd) != _clients.end();
+	return _clientsCha.find(fd) != _clientsCha.end();
 }
 
 void Channel::addOperator(int fd) {
@@ -53,7 +60,7 @@ bool Channel::isOperator(int fd) const {
 }
 
 void Channel::broadcastMsg(const std::string &msg, int sender_fd) {
-	for (std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
+	for (std::map<int, Client*>::iterator it = _clientsCha.begin(); it != _clientsCha.end(); ++it) {
 		int fd = it->first; //gets the file descriptor
 		if (fd != sender_fd) { //does not send the msg to the sender
 			send(fd, msg.c_str(), msg.size(), 0);

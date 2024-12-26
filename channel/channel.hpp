@@ -2,14 +2,16 @@
 #define CHANNEL_HPP
 
 #include "../Server.hpp"
+class Client;
 
 class Channel {
 	private:
 		std::string _nameChannel;
 		std::string _topicChannel;
-		std::map<int, Client*> _clients; // mapa dos fd's dos clientes
+		std::map<int, Client*> _clientsCha; // mapa dos fd's dos clientes
 		std::vector<int> _operatorsChannel; // lista dos fds dos operadpres
 	public:
+		Channel();
 		Channel(const std::string &name);
 		~Channel();
 
@@ -23,7 +25,7 @@ class Channel {
 		void setTopic(const std::string  &topic);
 
 		//client management
-		void addClient(Client &client);
+		void addClient(Client *client);
 		void removeClient(int fd);
 		bool hasClient(int fd) const;
 
