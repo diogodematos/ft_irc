@@ -36,6 +36,12 @@ class Channel {
 
 		//message broadcast
 		void broadcastMsg(const std::string &msg, int sender_fd);
+
+		//operations
+		void kickClient(int fd);
+		void inviteClient(int fd);
+		void changeTopic(std::string &topic);
+		void changeMode(std::string &msg);
 };
 
 #endif //CHANNEL_HPP
