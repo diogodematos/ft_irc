@@ -3,6 +3,7 @@ NAME = ircserv
 SRC = main.cpp\
 		Server.cpp \
 		client/client.cpp \
+		channel/channel.cpp\
 #SRC = teste.cpp
 	
 CXX = c++ -g 

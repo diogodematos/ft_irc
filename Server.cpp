@@ -101,7 +101,7 @@ void Server::run()
 
         for (unsigned int i = 0; i < _poll_fds.size(); i++)
         {
-            if(_poll_fds[i].revents & POLLIN)
+            if(_poll_fds[i].revents & POLLIN) //FAZER A TATICA DO ANDRE, 532
             {
                 if (_poll_fds[i].fd == _server_socket)
                 {
@@ -164,7 +164,6 @@ void Server::command(int fd, std::string &msg)
 
 void Server::handleClientMsg(int fd, std::string &msg)
 {
-    
     if (msg.rfind("CAP ", 0) == 0)
         return ;
     if (!_clients[fd].getAutheticated())
@@ -222,13 +221,22 @@ void Server::handleClientMsg(int fd, std::string &msg)
                 send(fd, welcome.c_str(), welcome.size(), 0);
             }
         }
-        else if (msg.rfind("PING", 0) == 0)
+        else if (msg.rfind("PING ", 0) == 0)
         {
             std::string token = msg.substr(5);
             std::string response = "PONG " + token + "\r\n";
             send(fd, response.c_str(), response.length(), 0);
             std::cout << "Responded to PING with PONG." << std::endl;
         }
+		else if (msg.rfind("JOIN ", 0) == 0) {
+			std::string channelName = msg.substr(5);
+
+			//if channel does not exist, creates
+			if (_channels.find(channelName) == _channels.end()) {
+				_channels[channelName] = Channel(channelName);
+				_channels[channelName].addOperator(fd); //makes the first client the operator
+			}
+		}
         else
         {
             std::ostringstream oss;
