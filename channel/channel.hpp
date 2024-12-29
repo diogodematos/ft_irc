@@ -9,7 +9,7 @@ class Channel {
 		std::string _nameChannel;
 		std::string _topicChannel;
 		std::map<int, Client*> _clientsCha; // mapa dos fd's dos clientes
-		std::vector<int> _operatorsChannel; // lista dos fds dos operadpres
+		std::vector<int> _operatorsChannel; // lista dos fd's dos operadores
 	public:
 		Channel();
 		Channel(const std::string &name);
@@ -37,11 +37,17 @@ class Channel {
 		//message broadcast
 		void broadcastMsg(const std::string &msg, int sender_fd);
 
+		bool parseMessage(const std::string &msg, int sender_fd);
+
 		//operations
-		void kickClient(int fd);
-		void inviteClient(int fd);
-		void changeTopic(std::string &topic);
-		void changeMode(std::string &msg);
+		void kickClient(std::string &rest);
+		void inviteClient(std::string &rest);
+		void changeTopic(std::string &rest);
+		void changeMode(std::string &rest);
+
+		class WrongArgException : std::exception {
+			virtual const char* what() const throw();
+		};
 };
 
 #endif //CHANNEL_HPP

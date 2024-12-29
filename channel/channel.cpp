@@ -59,11 +59,86 @@ bool Channel::isOperator(int fd) const {
 	return std::find(_operatorsChannel.begin(), _operatorsChannel.end(), fd) != _operatorsChannel.end();
 }
 
+/*void Channel::inviteClient(Client *client) {
+	addClient(client);
+}*/
+
+
+
 void Channel::broadcastMsg(const std::string &msg, int sender_fd) {
-	for (std::map<int, Client*>::iterator it = _clientsCha.begin(); it != _clientsCha.end(); ++it) {
-		int fd = it->first; //gets the file descriptor
-		if (fd != sender_fd) { //does not send the msg to the sender
-			send(fd, msg.c_str(), msg.size(), 0);
+
+	if (!Channel::parseMessage(msg, sender_fd))
+	{
+		for (std::map<int, Client*>::iterator it = _clientsCha.begin(); it != _clientsCha.end(); ++it) {
+			int fd = it->first; //gets the file descriptor
+			if (fd != sender_fd) { //does not send the msg to the sender
+				send(fd, msg.c_str(), msg.size(), 0);
+			}
 		}
 	}
+}
+
+// --------- PARSING ---------
+
+std::string extract(std::string rest) {
+	std::string extracted;
+	size_t idx = rest.find_first_not_of(" \t\v\n\r\f"); // skip a todos os whitespaces da std::isspace
+	if (idx != std::string::npos)
+	{
+		rest = rest.substr(idx); // faz com que a str seja tudo a seguir aos whitespaces
+
+		idx = rest.find_first_of(" \t\v\n\r\f"); // vai tentar ver se o valor esta entre espaços
+		if (idx != std::string::npos)
+			extracted = rest.substr(0, idx);
+		else
+			extracted = rest; // se nao esta entre espaços, vai o resto da str
+	}
+	return extracted; // se for empty(), e verificado a seguir
+}
+
+bool Channel::parseMessage(const std::string &msg, int sender_fd) {
+	// Procura na msg as várias keywords
+	std::string ops[4] = { "KICK", "INVITE", "TOPIC", "MODE" };
+	std::string rest;
+	int i = 0;
+
+	for (i = 0; i < 4; i++){
+		if (int idx = msg.find(ops[i]) != std::string ::npos)
+		{
+			rest = extract(msg.substr(idx + ops[i].length())); // copia tudo o que esta a frente do comando
+			break;
+		}
+	}
+
+	if (rest.empty()) // Se nao encontrou comandos e argumentos na msg, retorna false
+		return false;
+
+	switch (i) { // manda o resto da msg para ser tratado e extraído o valor em cada funcao
+		case 1:
+			Channel::kickClient(rest);
+			break;
+		case 2:
+			Channel::inviteClient(rest);
+			break;
+		case 3:
+			Channel::changeTopic(rest);
+			break;
+		case 4:
+			Channel::changeMode(rest);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+// --------- OPERATIONS ---------
+
+void Channel::kickClient(std::string &rest) {
+
+}
+
+// --------- EXCEPTIONS ---------
+const char *Channel::WrongArgException::what() const throw() {
+	return "Wrong type of argument for command.";
 }
