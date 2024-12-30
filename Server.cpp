@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/12/23 13:24:20 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2024/12/30 16:40:11 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -237,18 +237,25 @@ void Server::handleClientMsg(int fd, std::string &msg)
 		else if (msg.rfind("JOIN ", 0) == 0) {
 			std::string channelName = msg.substr(5);
 
-			//if channel does not exist, creates
-			if (_channels.find(channelName) == _channels.end()) {
-				std::string debugger = "Entrou\r\n";
-				send(fd, debugger.c_str(), debugger.size(), 0);
-				_channels[channelName] = Channel(channelName);
-				_channels[channelName].addOperator(fd); //makes the first client the operator
+			if (_clients[fd].getUsername().empty())
+			{
+				std::string error = "First you need to set username!\r\n";
+				send(fd, error.c_str(), error.size(), 0);
 			}
-			//add client to list
-			_channels[channelName].addClient(&_clients[fd]);
-			std::string response = "Joined Channel " + channelName + "\r\n";
-			send(fd, response.c_str(), response.size(), 0);
-			std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << channelName << "." << std::endl;
+			//if channel does not exist, creates
+			else {
+				if (_channels.find(channelName) == _channels.end()) {
+					std::string debugger = "Entrou\r\n";
+					send(fd, debugger.c_str(), debugger.size(), 0);
+					_channels[channelName] = Channel(channelName);
+					_channels[channelName].addOperator(fd); //makes the first client the operator
+				}
+				//add client to list
+				_channels[channelName].addClient(&_clients[fd]);
+				std::string response = "Joined Channel " + channelName + "\r\n";
+				send(fd, response.c_str(), response.size(), 0);
+				std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << channelName << "." << std::endl;
+			}
 		}
 		else if (msg.rfind("PART ", 0) == 0) {
 			std::string channelName = msg.substr(5);
@@ -276,16 +283,34 @@ void Server::handleClientMsg(int fd, std::string &msg)
 			}
 			else {
 				std::string target = msg.substr(8, spacePos - 8);
-				std::string message = msg.substr(spacePos + 1);
-
-				//send msg to a channel
-				if (_channels.find(target) != _channels.end()) {
-					_channels[target].broadcastMsg(message, fd);
-				}
+				std::string message = msg.substr(spacePos + 1) + "\r\n";
+				int check = 0;
 				//send msg to specific user
-				else {
-					std::string error = "Error: Target not found\r\n";
-					send(fd, error.c_str(), error.size(), 0);
+				for (unsigned int i = 0; i < _clients.size(); i++)
+					{
+						if (_clients[i].getNickname() == target)
+						{
+							send(i, message.c_str(), message.size(), 0);
+							check = 1;
+							break;
+						}
+					}	
+				if (check == 0){
+					if (!_channels[target].hasClient(fd))
+					{
+						std::string error = "Error: You are not in channel " + target + "\r\n";
+						send(fd, error.c_str(), error.size(), 0);
+					}
+
+					//send msg to a channel
+					else if (_channels.find(target) != _channels.end()) {
+						_channels[target].broadcastMsg(message, fd);
+					}
+					
+					else {
+						std::string error = "Error: Target not found\r\n";
+						send(fd, error.c_str(), error.size(), 0);
+					}
 				}
 			}
 		}

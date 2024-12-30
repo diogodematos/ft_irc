@@ -101,7 +101,7 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
 	std::string ops[4] = { "KICK", "INVITE", "TOPIC", "MODE" };
 	std::string rest;
 	int i = 0;
-
+	
 	for (i = 0; i < 4; i++){
 		if (int idx = msg.find(ops[i]) != std::string ::npos)
 		{
@@ -112,7 +112,6 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
 
 	if (rest.empty()) // Se nao encontrou comandos e argumentos na msg, retorna false
 		return false;
-
 	switch (i) { // manda o resto da msg para ser tratado e extraído o valor em cada funcao
 		case 1:
 			Channel::kickClient(rest);
@@ -135,7 +134,7 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
 // --------- OPERATIONS ---------
 
 void Channel::kickClient(std::string &rest) {
-
+	rest = "kick";
 }
 
 // --------- EXCEPTIONS ---------
