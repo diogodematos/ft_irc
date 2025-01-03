@@ -66,7 +66,7 @@ bool Channel::isOperator(int fd) const {
 
 
 void Channel::broadcastMsg(const std::string &msg, int sender_fd) {
-
+	
 	if (!Channel::parseMessage(msg, sender_fd))
 	{
 		for (std::map<int, Client*>::iterator it = _clientsCha.begin(); it != _clientsCha.end(); ++it) {
@@ -100,6 +100,9 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
 	// Procura na msg as várias keywords
 	std::string ops[4] = { "KICK", "INVITE", "TOPIC", "MODE" };
 	std::string rest;
+	//////////////
+	sender_fd = 0;
+	///////////////
 	int i = 0;
 	
 	for (i = 0; i < 4; i++){
@@ -112,32 +115,36 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
 
 	if (rest.empty()) // Se nao encontrou comandos e argumentos na msg, retorna false
 		return false;
-	switch (i) { // manda o resto da msg para ser tratado e extraído o valor em cada funcao
-		case 1:
-			Channel::kickClient(rest);
-			break;
-		case 2:
-			Channel::inviteClient(rest);
-			break;
-		case 3:
-			Channel::changeTopic(rest);
-			break;
-		case 4:
-			Channel::changeMode(rest);
-			break;
-		default:
-			return false;
-	}
 	return true;
 }
+		///////////////////////////////////////
+// 	switch (i) { // manda o resto da msg para ser tratado e extraído o valor em cada funcao
+// 		case 1:
+// 			Channel::kickClient(rest);
+// 			break;
+// 		case 2:
+// 			Channel::inviteClient(rest);
+// 			break;
+// 		case 3:
+// 			Channel::changeTopic(rest);
+// 			break;
+// 		case 4:
+// 			Channel::changeMode(rest);
+// 			break;
+// 		default:
+// 			return false;
+// 	}
+// 	return true;
+// }
 
 // --------- OPERATIONS ---------
 
-void Channel::kickClient(std::string &rest) {
-	rest = "kick";
-}
+// void Channel::kickClient(std::string &rest) {
+// 	rest = "kick";
+// }
 
-// --------- EXCEPTIONS ---------
-const char *Channel::WrongArgException::what() const throw() {
-	return "Wrong type of argument for command.";
-}
+// // --------- EXCEPTIONS ---------
+// const char *Channel::WrongArgException::what() const throw() {
+// 	return "Wrong type of argument for command.";
+// }
+//////////////////////////////////////////////////////////

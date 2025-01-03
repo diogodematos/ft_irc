@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/12/30 16:40:11 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/03 18:58:49 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -234,8 +234,8 @@ void Server::handleClientMsg(int fd, std::string &msg)
 			send(fd, response.c_str(), response.length(), 0);
 			std::cout << "Responded to PING with PONG." << std::endl;
 		}
-		else if (msg.rfind("JOIN ", 0) == 0) {
-			std::string channelName = msg.substr(5);
+		else if ((msg.rfind("JOIN #", 0) == 0) || (msg.rfind("JOIN &", 0) == 0)) {
+			std::string channelName = msg.substr(6);
 
 			if (_clients[fd].getUsername().empty())
 			{
@@ -287,14 +287,14 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				int check = 0;
 				//send msg to specific user
 				for (unsigned int i = 0; i < _clients.size(); i++)
+				{
+					if (_clients[i].getNickname() == target)
 					{
-						if (_clients[i].getNickname() == target)
-						{
-							send(i, message.c_str(), message.size(), 0);
-							check = 1;
-							break;
-						}
-					}	
+						send(i, message.c_str(), message.size(), 0);
+						check = 1;
+						break;
+					}
+				}	
 				if (check == 0){
 					if (!_channels[target].hasClient(fd))
 					{
@@ -316,10 +316,14 @@ void Server::handleClientMsg(int fd, std::string &msg)
 		}
 		else
 		{
-			std::ostringstream oss;
-			oss << "Unknown command from client " << fd << ": " << msg << "\r\n";
-			std::string error = oss.str();
-			send(fd, error.c_str(), error.size(), 0);
+			size_t spacePos = msg.find(' ', 8);
+			std::string target = msg.substr(8, spacePos - 8);
+			std::string message = msg.substr(spacePos + 1) + "\r\n";
+			_channels[target].parseMessage(message, fd);
+			// std::ostringstream oss;
+			// oss << "Unknown command from client " << fd << ": " << msg << "\r\n";
+			// std::string error = oss.str();
+			// send(fd, error.c_str(), error.size(), 0);
 		}
 	}
 }

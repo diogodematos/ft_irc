@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:35:01 by dcarrilh          #+#    #+#             */
-/*   Updated: 2024/12/23 11:49:53 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/03 16:27:48 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,7 +45,7 @@ private:
 		std::vector<struct pollfd> _poll_fds;
 		struct sockaddr_in address;
 		std::map<int, Client> _clients;
-		std::map<std::string, Channel> _channels; //map of channel name to channel object
+		std::map<std::string, Channel> _channels; //map of channel name to channel object 
 
 		//void setupServer(int port);
 
