@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/06 16:07:53 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/06 17:28:53 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -276,7 +276,7 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				std::string response = "Left channel " + channelName + "\r\n";
 				send(fd, response.c_str(), response.size(), 0);
 
-				std::cout << "Client " << fd << "left channel " << channelName << "." << std::endl;
+				std::cout << "Client " << fd << " left channel " << channelName << "." << std::endl;
 			}
 			else
 			{
@@ -332,9 +332,11 @@ void Server::handleClientMsg(int fd, std::string &msg)
 
 		else if (msg.rfind("KICK ", 0) == 0 || msg.rfind("TOPIC ", 0) == 0 || msg.rfind("MODE ", 0) == 0 || msg.rfind("INVITE ", 0) == 0)
 		{
-			std::string after_command = msg.substr(msg.find_first_of(" \t\v\n\r\f")); // found first whitespace
+			std::string after_command = msg.substr(msg.find_first_of(" \t\v\n\r\f")) + "\r\n"; // found first whitespace
 			size_t idx = after_command.find_first_not_of(" \t\v\n\r\f");			  // found channel
-			std::string target = msg.substr(idx, after_command.find_first_of(" \t\v\n\r\f"));
+			std::string target = after_command.substr(idx, after_command.find_first_of(" \t\v\n\r\f", idx) - idx);
+			send(fd, after_command.c_str(), after_command.size(), 0);
+			send(fd, target.c_str(), target.size(), 0);
 			if (_channels.find(target) != _channels.end())
 				_channels[target].parseMessage(msg, fd);
 			else
