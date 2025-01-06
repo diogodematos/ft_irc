@@ -98,7 +98,7 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
 	std::string ops[4] = { "KICK", "INVITE", "TOPIC", "MODE" };
 	std::string rest;
 	int i = 0;
-	
+
 	for (i = 0; i < 4; i++){
 		if (int idx = msg.find(ops[i]) != std::string ::npos)
 		{
@@ -111,20 +111,20 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
 		return false;
 
  	switch (i) { // manda o resto da msg para ser tratado e extraído o valor em cada funcao
- 		case 1:
- 			//Channel::kickClient(rest);
-			broadcastMsg("Attempting to kick", sender_fd);
- 			break;
- 		case 2:
-			broadcastMsg("Attempting to invite", sender_fd);
+		case 0:
+			send(sender_fd, "Trying to kick\n", 15, 0);
+			//Channel::kickClient(rest);
+			break;
+		case 1:
+			send(sender_fd, "Trying to invt\n", 15, 0);
  			//Channel::inviteClient(rest);
  			break;
- 		case 3:
-			broadcastMsg("Attempting to change topic", sender_fd);
+ 		case 2:
+			send(sender_fd, "Trying to topc\n", 15, 0);
  			//Channel::changeTopic(rest);
  			break;
- 		case 4:
-			broadcastMsg("Attempting to change mode", sender_fd);
+ 		case 3:
+			send(sender_fd, "Trying to mode\n", 15, 0);
  			//Channel::changeMode(rest);
  			break;
  		default:
