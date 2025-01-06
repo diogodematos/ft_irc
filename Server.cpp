@@ -6,57 +6,56 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/03 18:58:49 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/06 15:56:25 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
-
 int Server::_active = 1;
 
-//Start the server
+// Start the server
 Server::Server(std::string const &port, std::string const &pass) : _pass(pass)
 {
 	_active = 1;
 	_port = std::atoi(port.c_str());
 	int _opt = 1;
 
-	//Create a socket
+	// Create a socket
 	_server_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (_server_socket == -1)
 	{
 		throw std::runtime_error("Can't create a socket! Quitting");
 	}
 
-	//Configure the socket for reuse
+	// Configure the socket for reuse
 	if (setsockopt(_server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &_opt, sizeof(_opt)) == -1)
 	{
 		close(_server_socket);
 		throw std::runtime_error("Can't set socket options! Quitting");
 	}
 
-	//Configure the server
+	// Configure the server
 	std::memset(&address, 0, sizeof(address));
-	address.sin_family = AF_INET; // Set the address family to IPv4
+	address.sin_family = AF_INET;		  // Set the address family to IPv4
 	address.sin_addr.s_addr = INADDR_ANY; // Bind to all available interfaces
-	address.sin_port = htons(_port); // Convert the port to network byte order
+	address.sin_port = htons(_port);	  // Convert the port to network byte order
 
-	//Bind the socket to IP/port
+	// Bind the socket to IP/port
 	if (bind(_server_socket, (struct sockaddr *)&address, sizeof(address)) == -1)
 	{
 		close(_server_socket);
 		throw std::runtime_error("Can't bind to IP/port");
 	}
 
-	//Mark the socket for listening in
+	// Mark the socket for listening in
 	if (listen(_server_socket, SOMAXCONN) == -1)
 	{
 		close(_server_socket);
 		throw std::runtime_error("Can't listen!");
 	}
 
-	//Add the server socket to the poll
+	// Add the server socket to the poll
 	struct pollfd _poll_listener;
 	_poll_listener.fd = _server_socket;
 	_poll_listener.revents = 0;
@@ -72,7 +71,7 @@ Server::~Server()
 	std::cout << "Server shut down." << std::endl;
 }
 
-//Run the server
+// Run the server
 void Server::run()
 {
 	while (_active == 1)
@@ -80,7 +79,7 @@ void Server::run()
 		std::signal(SIGINT, Server::signalHandler);
 		std::signal(SIGTSTP, Server::signalHandler);
 
-		//ignore date sent to a closed socket
+		// ignore date sent to a closed socket
 		struct sigaction sa;
 		sa.sa_handler = SIG_IGN;
 		sigemptyset(&sa.sa_mask);
@@ -108,11 +107,11 @@ void Server::run()
 
 		for (unsigned int i = 0; i < _poll_fds.size(); i++)
 		{
-			if(_poll_fds[i].revents & POLLIN) //FAZER A TATICA DO ANDRE, 532
+			if (_poll_fds[i].revents & POLLIN) // FAZER A TATICA DO ANDRE, 532
 			{
 				if (_poll_fds[i].fd == _server_socket)
 				{
-					//int new_socket;
+					// int new_socket;
 					struct sockaddr_in client_addr;
 					socklen_t client_len = sizeof(client_addr);
 					if ((_client_socket = accept(_server_socket, (struct sockaddr *)&client_addr, &client_len)) == -1)
@@ -128,7 +127,7 @@ void Server::run()
 					_poll_client.revents = 0;
 					_poll_fds.push_back(_poll_client);
 
-					//add a client to the map
+					// add a client to the map
 					_clients[_client_socket] = Client(_client_socket);
 				}
 				else
@@ -143,7 +142,7 @@ void Server::run()
 						_poll_fds.erase(_poll_fds.begin() + i);
 						i--;
 					}
-					//message is received
+					// message is received
 					else
 					{
 						std::string msg(buffer);
@@ -160,7 +159,7 @@ void Server::command(int fd, std::string &msg)
 	_clients[fd].bufferAppend(msg);
 
 	size_t pos;
-	while((pos = _clients[fd].buffer().find("\r\n")) != std::string::npos)
+	while ((pos = _clients[fd].buffer().find("\r\n")) != std::string::npos)
 	{
 		std::string command = _clients[fd].buffer().substr(0, pos);
 		_clients[fd].clearBuffer();
@@ -171,13 +170,16 @@ void Server::command(int fd, std::string &msg)
 void Server::handleClientMsg(int fd, std::string &msg)
 {
 	if (msg.rfind("CAP ", 0) == 0)
-		return ;
-	if (!_clients[fd].getAutheticated())
+	{
+		std::string hex = "Hello Hexchat Client!\r\n";
+		send(fd, hex.c_str(), hex.size(), 0);
+	}
+	else if (!_clients[fd].getAutheticated())
 	{
 		if (msg.rfind("PASS ", 0) == 0)
 		{
 			std::string pass = msg.substr(5);
-			if (pass != _pass )
+			if (pass != _pass)
 			{
 				std::string error = "Error: Wrong Password!\r\n";
 				send(fd, error.c_str(), error.size(), 0);
@@ -234,7 +236,8 @@ void Server::handleClientMsg(int fd, std::string &msg)
 			send(fd, response.c_str(), response.length(), 0);
 			std::cout << "Responded to PING with PONG." << std::endl;
 		}
-		else if ((msg.rfind("JOIN #", 0) == 0) || (msg.rfind("JOIN &", 0) == 0)) {
+		else if ((msg.rfind("JOIN #", 0) == 0) || (msg.rfind("JOIN &", 0) == 0))
+		{
 			std::string channelName = msg.substr(6);
 
 			if (_clients[fd].getUsername().empty())
@@ -242,27 +245,32 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				std::string error = "First you need to set username!\r\n";
 				send(fd, error.c_str(), error.size(), 0);
 			}
-			//if channel does not exist, creates
-			else {
-				if (_channels.find(channelName) == _channels.end()) {
+			// if channel does not exist, creates
+			else
+			{
+				if (_channels.find(channelName) == _channels.end())
+				{
 					std::string debugger = "Entrou\r\n";
 					send(fd, debugger.c_str(), debugger.size(), 0);
 					_channels[channelName] = Channel(channelName);
-					_channels[channelName].addOperator(fd); //makes the first client the operator
+					_channels[channelName].addOperator(fd); // makes the first client the operator
 				}
-				//add client to list
+				// add client to list
 				_channels[channelName].addClient(&_clients[fd]);
 				std::string response = "Joined Channel " + channelName + "\r\n";
 				send(fd, response.c_str(), response.size(), 0);
 				std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << channelName << "." << std::endl;
 			}
 		}
-		else if (msg.rfind("PART ", 0) == 0) {
+		else if (msg.rfind("PART ", 0) == 0)
+		{
 			std::string channelName = msg.substr(5);
-			if (_channels.find(channelName) != _channels.end() && _channels[channelName].hasClient(fd)) {
+			if (_channels.find(channelName) != _channels.end() && _channels[channelName].hasClient(fd))
+			{
 				_channels[channelName].removeClient(fd);
 
-				if (_channels[channelName].getClients().empty()) {
+				if (_channels[channelName].getClients().empty())
+				{
 					_channels.erase(channelName);
 				}
 				std::string response = "Left channel " + channelName + "\r\n";
@@ -270,22 +278,26 @@ void Server::handleClientMsg(int fd, std::string &msg)
 
 				std::cout << "Client " << fd << "left channel " << channelName << "." << std::endl;
 			}
-			else {
+			else
+			{
 				std::string error = "Error: You are not in channel " + channelName + "\r\n";
 				send(fd, error.c_str(), error.size(), 0);
 			}
 		}
-		else if (msg.rfind("PRIVMSG ", 0) == 0) {
+		else if (msg.rfind("PRIVMSG ", 0) == 0)
+		{
 			size_t spacePos = msg.find(' ', 8);
-			if (spacePos == std::string::npos) {
+			if (spacePos == std::string::npos)
+			{
 				std::string error = "Error: Invalid PRIVMSG format\r\n";
 				send(fd, error.c_str(), error.size(), 0);
 			}
-			else {
+			else
+			{
 				std::string target = msg.substr(8, spacePos - 8);
 				std::string message = msg.substr(spacePos + 1) + "\r\n";
 				int check = 0;
-				//send msg to specific user
+				// send msg to specific user
 				for (unsigned int i = 0; i < _clients.size(); i++)
 				{
 					if (_clients[i].getNickname() == target)
@@ -294,32 +306,51 @@ void Server::handleClientMsg(int fd, std::string &msg)
 						check = 1;
 						break;
 					}
-				}	
-				if (check == 0){
+				}
+				if (check == 0)
+				{
 					if (!_channels[target].hasClient(fd))
 					{
 						std::string error = "Error: You are not in channel " + target + "\r\n";
 						send(fd, error.c_str(), error.size(), 0);
 					}
 
-					//send msg to a channel
-					else if (_channels.find(target) != _channels.end()) {
+					// send msg to a channel
+					else if (_channels.find(target) != _channels.end())
+					{
 						_channels[target].broadcastMsg(message, fd);
 					}
-					
-					else {
+
+					else
+					{
 						std::string error = "Error: Target not found\r\n";
 						send(fd, error.c_str(), error.size(), 0);
 					}
 				}
 			}
 		}
+
 		else
 		{
-			size_t spacePos = msg.find(' ', 8);
-			std::string target = msg.substr(8, spacePos - 8);
-			std::string message = msg.substr(spacePos + 1) + "\r\n";
-			_channels[target].parseMessage(message, fd);
+			std::string after_command = msg.substr(msg.find_first_of(" \t\v\n\r\f")); // found first whitespace
+			size_t idx = after_command.find_first_not_of(" \t\v\n\r\f");			  // found channel
+			std::string target = msg.substr(idx, after_command.find_first_of(" \t\v\n\r\f"));
+			if (_channels.find(target) != _channels.end())
+			{
+				if(!_channels[target].parseMessage(msg, fd))
+				{
+					std::ostringstream oss;
+					oss << "Unknown command from client " << fd << ": " << msg << "\r\n";
+					std::string error = oss.str();
+					send(fd, error.c_str(), error.size(), 0);
+				}
+				
+			}
+			else
+			{
+				std::string error = "Error: Target not found\r\n";
+				send(fd, error.c_str(), error.size(), 0);
+			}
 			// std::ostringstream oss;
 			// oss << "Unknown command from client " << fd << ": " << msg << "\r\n";
 			// std::string error = oss.str();
@@ -336,4 +367,3 @@ void Server::signalHandler(int sig)
 		std::cout << "\nCrtl + C called\r" << std::endl;
 	}
 }
-
