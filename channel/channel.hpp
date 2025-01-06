@@ -10,7 +10,7 @@ class Channel {
 		std::string _topicChannel;
 		std::map<int, Client*> _clientsCha; // mapa dos fd's dos clientes
 		std::vector<int> _operatorsChannel; // lista dos fd's dos operadores
-		std::vector<Channel> _channelsList;
+		//std::vector<Channel> _channelsList;
 	public:
 		Channel();
 		Channel(const std::string &name);
