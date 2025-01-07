@@ -6,7 +6,6 @@ class Client;
 
 class Channel {
 private:
-
 	std::string _nameChannel;
 	std::string _topicChannel;
 	std::map<int, Client*> _clientsCha; // mapa dos fd's dos clientes
@@ -18,11 +17,11 @@ private:
 	size_t _usrLimit;
 
 public:
-//	Channel();
+	Channel();
 	Channel(const std::string &name);
 	~Channel();
 
-	//getters
+	// ----- Getters -----
 	const std::string &getNameChannel() const;
 	const std::string &getTopicChannel() const;
 	const std::map<int, Client*> &getClients() const;
@@ -33,31 +32,31 @@ public:
 	bool compareKey(std::string &key);
 	bool canAddUsr();
 
-	//setters
-	void setTopic(const std::string  &topic);
-
-	//client management
+	// ----- Client management -----
 	void addClient(Client *client);
 	void removeClient(int fd);
 	bool hasClient(int fd) const;
 
-	//operator management
+	// ----- Operator/Owner management -----
 	void addRemOperator(int fd);
 	//void removeOperator(int fd);
 	bool isOperator(int fd) const;
 	bool isOwner(int fd) const;
 
-	//message broadcast
+	// ----- Message -----
 	void broadcastMsg(const std::string &msg, int sender_fd);
 
+	//  ----- Parsing -----
 	bool parseMessage(const std::string &msg, int sender_fd);
 
-	//operations
-	void kickClient(std::string &rest);
-	void inviteClient(std::string &rest);
-	void changeTopic(std::string &rest);
-	void changeMode(std::string &rest);
+	// ----- Operations -----
+	void kickClient(std::string &rest, int sFd);
+	void inviteClient(std::string &rest, int sFd);
+	void changeTopic(std::string &rest, int sFd);
+	void changeMode(std::string &rest, int sFd);
 
+
+	// ----- Exceptions -----
 	class WrongArgException : std::exception {
 		virtual const char* what() const throw();
 	};
