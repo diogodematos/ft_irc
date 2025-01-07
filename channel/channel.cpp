@@ -110,7 +110,7 @@ void Channel::changeMode(std::string &rest, int sFd) {
 	std::string tmp = "Channel topic was changed successfully.\r\n";;
 	if (isOwner(sFd))
 	{
-		char mode = NULL;
+		char mode = '\0';
 		switch (mode) {
 			case 'i':
 				break;
