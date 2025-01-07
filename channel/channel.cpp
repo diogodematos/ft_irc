@@ -9,8 +9,7 @@ Channel::Channel(const std::string &name) {
 	_invOnly = false;
 	_topicRestr = false;
 	_keyCha.clear();
-	int _usrLimit = 100;
-}
+	_usrLimit = 100;
 
 Channel::~Channel() {}
 
@@ -44,9 +43,6 @@ bool Channel::isKeyProtected() {
 	return !(_keyCha.empty());
 }
 
-bool Channel::canAddUsr() {
-	return (_clientsCha.size() < _usrLimit);
-}
 
 bool Channel::compareKey(std::string &key) {
 	return (key == _keyCha);
@@ -135,6 +131,10 @@ void Channel::changeMode(std::string &rest, int sFd) {
 }
 
 // --------- CLIENT MANAGEMENT ---------
+
+bool Channel::canAddUsr() {
+	return (_clientsCha.size() < _usrLimit);
+}
 
 /*void Channel::removeOperator(int fd) {
 	_operatorsCha.erase(std::remove(_operatorsCha.begin(), _operatorsCha.end(), fd), _operatorsCha.end());

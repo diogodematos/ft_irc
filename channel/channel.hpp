@@ -37,6 +37,7 @@ public:
 	void removeClient(int fd);
 	bool hasClient(int fd) const;
 
+}
 	// ----- Operator/Owner management -----
 	void addRemOperator(int fd);
 	//void removeOperator(int fd);
