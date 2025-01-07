@@ -1,6 +1,6 @@
 #include "channel.hpp"
 
-//Channel::Channel() {}
+Channel::Channel() {}
 
 Channel::Channel(const std::string &name) {
 	_nameChannel = name;
@@ -52,10 +52,19 @@ bool Channel::compareKey(std::string &key) {
 	return (key == _keyCha);
 }
 
-// --------- SETTERS ---------
+// --------- ADMIN MANAGEMENT ---------
 
-void Channel::setTopic(const std::string &topic) {
-	_topicChannel = topic;
+bool Channel::isOperator(int fd) const {
+	return std::find(_operatorsCha.begin(), _operatorsCha.end(), fd) != _operatorsCha.end();
+}
+
+bool Channel::isOwner(int fd) const {
+	return (_ownerCha == fd);
+}
+
+void Channel::addRemOperator(int fd) {
+	if (std::find(_operatorsCha.begin(), _operatorsCha.end(), fd) == _operatorsCha.end())
+		_operatorsCha.push_back(fd);
 }
 
 void Channel::addClient(Client *client) {
@@ -84,22 +93,52 @@ bool Channel::hasClient(int fd) const {
 	return _clientsCha.find(fd) != _clientsCha.end();
 }
 
-void Channel::addRemOperator(int fd) {
-	if (std::find(_operatorsCha.begin(), _operatorsCha.end(), fd) == _operatorsCha.end())
-		_operatorsCha.push_back(fd);
+// --------- CHANNEL MANAGEMENT ---------
+
+void Channel::changeTopic(std::string &rest, int sFd) {
+	std::string tmp = "Channel topic was changed successfully.\r\n";
+	if (isOwner(sFd))
+		_topicChannel = rest;
+	else if (isOperator(sFd))
+	{
+		if (isTopicRestr())
+			tmp = "Channel topic cannot be changed.\r\n";
+	}
+	else
+		tmp = "You don't have the privileges required to execute that operation.\r\n";
+	send(sFd, &tmp, tmp.size(), 0);
 }
+
+void Channel::changeMode(std::string &rest, int sFd) {
+	std::string tmp = "Channel topic was changed successfully.\r\n";;
+	if (isOwner(sFd))
+	{
+		char mode;
+		switch (mode) {
+			case 'i':
+				break;
+			case 't':
+				break;
+			case 'k':
+				break;
+			case 'o':
+				break;
+			case 'l':
+				break;
+			default:
+				tmp = "Channel mode not found.\r\n";
+		}
+	}
+	else
+		tmp = "You don't have the privileges required to execute that operation.\r\n";
+	send(sFd, &tmp, tmp.size(), 0);
+}
+
+// --------- CLIENT MANAGEMENT ---------
 
 /*void Channel::removeOperator(int fd) {
 	_operatorsCha.erase(std::remove(_operatorsCha.begin(), _operatorsCha.end(), fd), _operatorsCha.end());
 }*/
-
-bool Channel::isOperator(int fd) const {
-	return std::find(_operatorsCha.begin(), _operatorsCha.end(), fd) != _operatorsCha.end();
-}
-
-bool Channel::isOwner(int fd) const {
-	return (_ownerCha == fd);
-}
 
 /*void Channel::inviteClient(Client *client) {
 	addClient(client);
@@ -182,7 +221,7 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
 
  // --------- OPERATIONS ---------
 
- void Channel::kickClient(std::string &rest) {
+ void Channel::kickClient(std::string &rest, int sFd) {
 /* 	if (_clientsCha.find())
 	{
 
