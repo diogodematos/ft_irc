@@ -5,50 +5,61 @@
 class Client;
 
 class Channel {
-	private:
-		std::string _nameChannel;
-		std::string _topicChannel;
-		std::map<int, Client*> _clientsCha; // mapa dos fd's dos clientes
-		std::vector<int> _operatorsChannel; // lista dos fd's dos operadores
-		//std::vector<Channel> _channelsList;
-	public:
-		Channel();
-		Channel(const std::string &name);
-		~Channel();
+private:
 
-		//getters
-		const std::string &getNameChannel() const;
-		const std::string &getTopicChannel() const;
-		const std::map<int, Client*> &getClients() const;
-		const std::vector<int> &getOperators() const;
+	std::string _nameChannel;
+	std::string _topicChannel;
+	std::map<int, Client*> _clientsCha; // mapa dos fd's dos clientes
+	std::vector<int> _operatorsCha; // lista dos fd's dos operadores
+	int _ownerCha;
+	bool _invOnly;
+	bool _topicRestr;
+	std::string _keyCha;
+	size_t _usrLimit;
 
-		//setters
-		void setTopic(const std::string  &topic);
+public:
+//	Channel();
+	Channel(const std::string &name);
+	~Channel();
 
-		//client management
-		void addClient(Client *client);
-		void removeClient(int fd);
-		bool hasClient(int fd) const;
+	//getters
+	const std::string &getNameChannel() const;
+	const std::string &getTopicChannel() const;
+	const std::map<int, Client*> &getClients() const;
+	const std::vector<int> &getOperators() const;
+	bool isInvOnly();
+	bool isTopicRestr();
+	bool isKeyProtected();
+	bool canAddUsr();
 
-		//operator management
-		void addOperator(int fd);
-		void removeOperator(int fd);
-		bool isOperator(int fd) const;
+	//setters
+	void setTopic(const std::string  &topic);
 
-		//message broadcast
-		void broadcastMsg(const std::string &msg, int sender_fd);
+	//client management
+	void addClient(Client *client);
+	void removeClient(int fd);
+	bool hasClient(int fd) const;
 
-		bool parseMessage(const std::string &msg, int sender_fd);
+	//operator management
+	void addOperator(int fd);
+	void removeOperator(int fd);
+	bool isOperator(int fd) const;
+	bool isOwner(int fd) const;
 
-		//operations
-		void kickClient(std::string &rest);
-		void inviteClient(std::string &rest);
-		void changeTopic(std::string &rest);
-		void changeMode(std::string &rest);
+	//message broadcast
+	void broadcastMsg(const std::string &msg, int sender_fd);
 
-		class WrongArgException : std::exception {
-			virtual const char* what() const throw();
-		};
+	bool parseMessage(const std::string &msg, int sender_fd);
+
+	//operations
+	void kickClient(std::string &rest);
+	void inviteClient(std::string &rest);
+	void changeTopic(std::string &rest);
+	void changeMode(std::string &rest);
+
+	class WrongArgException : std::exception {
+		virtual const char* what() const throw();
+	};
 };
 
 #endif //CHANNEL_HPP

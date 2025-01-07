@@ -1,13 +1,20 @@
 #include "channel.hpp"
 
-Channel::Channel() {}
+//Channel::Channel() {}
 
 Channel::Channel(const std::string &name) {
 	_nameChannel = name;
 	_topicChannel = "";
+	_ownerCha = -1;
+	_invOnly = false;
+	_topicRestr = false;
+	_keyCha.clear();
+	int _usrLimit = 100;
 }
 
 Channel::~Channel() {}
+
+// --------- GETTERS ---------
 
 const std::string &Channel::getNameChannel() const {
 	return _nameChannel;
@@ -22,23 +29,50 @@ const std::map<int, Client*> &Channel::getClients() const {
 }
 
 const std::vector<int> &Channel::getOperators() const {
-	return _operatorsChannel;
+	return _operatorsCha;
 }
+
+bool Channel::isInvOnly() {
+	return _invOnly;
+}
+
+bool Channel::isTopicRestr() {
+	return _topicRestr;
+}
+
+bool Channel::isKeyProtected() {
+	return !(_keyCha.empty());
+}
+
+bool Channel::canAddUsr() {
+	return (_clientsCha.size() < _usrLimit);
+}
+
+// --------- SETTERS ---------
 
 void Channel::setTopic(const std::string &topic) {
 	_topicChannel = topic;
 }
 
 void Channel::addClient(Client *client) {
-	if (client) {
+	if (client && canAddUsr())
+	{
+		if (_clientsCha.empty() && _operatorsCha.empty()) // First client to connect is automatically the owner
+		{
+			_ownerCha = client->getFd();
+			std::cout << "Client " << client->getFd() << " added to channel as founder." << std::endl;
+		}
+		else
+			std::cout << "Client " << client->getFd() << " added to channel." << std::endl;
 		_clientsCha[client->getFd()] = client; // Store the pointer
-		std::cout << "Client " << client->getFd() << " added to channel." << std::endl;
-	} else {
-		std::cerr << "Error: Attempted to add a null client to the channel." << std::endl;
 	}
+	else
+		std::cerr << "Error: Attempted to add a null client to the channel." << std::endl;
 }
 
 void Channel::removeClient(int fd) {
+/*	if (isOperator(fd))
+		_operatorsCha.;*/
 	_clientsCha.erase(fd);
 }
 
@@ -46,17 +80,17 @@ bool Channel::hasClient(int fd) const {
 	return _clientsCha.find(fd) != _clientsCha.end();
 }
 
-void Channel::addOperator(int fd) {
-	if (std::find(_operatorsChannel.begin(), _operatorsChannel.end(), fd) == _operatorsChannel.end())
-		_operatorsChannel.push_back(fd);
+void Channel::addRemOperator(int fd) {
+	if (std::find(_operatorsCha.begin(), _operatorsCha.end(), fd) == _operatorsCha.end())
+		_operatorsCha.push_back(fd);
 }
 
-void Channel::removeOperator(int fd) {
-	_operatorsChannel.erase(std::remove(_operatorsChannel.begin(), _operatorsChannel.end(), fd), _operatorsChannel.end());
-}
+/*void Channel::removeOperator(int fd) {
+	_operatorsCha.erase(std::remove(_operatorsCha.begin(), _operatorsCha.end(), fd), _operatorsCha.end());
+}*/
 
 bool Channel::isOperator(int fd) const {
-	return std::find(_operatorsChannel.begin(), _operatorsChannel.end(), fd) != _operatorsChannel.end();
+	return std::find(_operatorsCha.begin(), _operatorsCha.end(), fd) != _operatorsCha.end();
 }
 
 /*void Channel::inviteClient(Client *client) {
@@ -102,7 +136,7 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
 	for (i = 0; i < 4; i++){
 		if (int idx = msg.find(ops[i]) != std::string ::npos)
 		{
-			rest = extract(msg.substr(idx + ops[i].length()), this->_nameChannel); // copia tudo o que esta a frente do comando
+			rest = extract(msg.substr(idx + ops[i].length()), this->_nameChannel); // copia tudo o que esta a frente do comando e channel
 			break;
 		}
 	}
@@ -113,7 +147,7 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
  	switch (i) { // manda o resto da msg para ser tratado e extraído o valor em cada funcao
 		case 0:
 			send(sender_fd, "Trying to kick\n", 15, 0);
-			//Channel::kickClient(rest);
+			Channel::kickClient(rest);
 			break;
 		case 1:
 			send(sender_fd, "Trying to invt\n", 15, 0);
@@ -133,10 +167,18 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
  	return true;
  }
 
+
+ // --------- OPERATIONS ---------
+
+
+
  // --------- OPERATIONS ---------
 
  void Channel::kickClient(std::string &rest) {
- 	rest = "kick";
+/* 	if (_clientsCha.find())
+	{
+
+	}*/
  }
 
  // --------- EXCEPTIONS ---------
