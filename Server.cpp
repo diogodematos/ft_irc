@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/06 17:28:53 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/07 16:00:45 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,6 +138,7 @@ void Server::run()
 					{
 						std::cout << "Client disconnected" << std::endl;
 						close(_poll_fds[i].fd);
+						
 						_clients.erase(_poll_fds[i].fd);
 						_poll_fds.erase(_poll_fds.begin() + i);
 						i--;
@@ -250,7 +251,7 @@ void Server::handleClientMsg(int fd, std::string &msg)
 			{
 				if (_channels.find(channelName) == _channels.end())
 				{
-					std::string debugger = "Entrou\r\n";
+					std::string debugger = "Channel " + channelName + " created!\r\n";
 					send(fd, debugger.c_str(), debugger.size(), 0);
 					_channels[channelName] = Channel(channelName);
 					_channels[channelName].addOperator(fd); // makes the first client the operator
@@ -314,16 +315,12 @@ void Server::handleClientMsg(int fd, std::string &msg)
 						std::string error = "Error: You are not in channel " + target + "\r\n";
 						send(fd, error.c_str(), error.size(), 0);
 					}
-
 					// send msg to a channel
 					else if (_channels.find(target) != _channels.end())
-					{
 						_channels[target].broadcastMsg(message, fd);
-					}
-
 					else
 					{
-						std::string error = "Error: Target not found\r\n";
+						std::string error = "Error: Channel not found\r\n";
 						send(fd, error.c_str(), error.size(), 0);
 					}
 				}
@@ -335,13 +332,20 @@ void Server::handleClientMsg(int fd, std::string &msg)
 			std::string after_command = msg.substr(msg.find_first_of(" \t\v\n\r\f")) + "\r\n"; // found first whitespace
 			size_t idx = after_command.find_first_not_of(" \t\v\n\r\f");			  // found channel
 			std::string target = after_command.substr(idx, after_command.find_first_of(" \t\v\n\r\f", idx) - idx);
-			send(fd, after_command.c_str(), after_command.size(), 0);
-			send(fd, target.c_str(), target.size(), 0);
+			
 			if (_channels.find(target) != _channels.end())
-				_channels[target].parseMessage(msg, fd);
+			{
+				if (_channels[target].isOperator(fd))
+					_channels[target].parseMessage(msg, fd);
+				else
+				{
+					std::string error = "Error: Client isn't Channel Operator\r\n";
+					send(fd, error.c_str(), error.size(), 0);
+				}
+			}
 			else
 			{
-				std::string error = "Error: Target not found\r\n";
+				std::string error = "Error: Channel not found\r\n";
 				send(fd, error.c_str(), error.size(), 0);
 			}
 		}
