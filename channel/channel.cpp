@@ -107,6 +107,7 @@ void Channel::changeTopic(std::string &rest, int sFd) {
 }
 
 void Channel::changeMode(std::string &rest, int sFd) {
+	(void)rest;
 	std::string tmp = "Channel topic was changed successfully.\r\n";;
 	if (isOwner(sFd))
 	{
@@ -195,7 +196,7 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
  	switch (i) { // manda o resto da msg para ser tratado e extraído o valor em cada funcao
 		case 0:
 			send(sender_fd, "Trying to kick\n", 15, 0);
-			Channel::kickClient(rest);
+			Channel::kickClient(rest, sender_fd);
 			break;
 		case 1:
 			send(sender_fd, "Trying to invt\n", 15, 0);
@@ -223,6 +224,8 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
  // --------- OPERATIONS ---------
 
  void Channel::kickClient(std::string &rest, int sFd) {
+	 (void)rest;
+	 send(sFd, "Kicked gingers\r\n", 15, 0);
 /* 	if (_clientsCha.find())
 	{
 
