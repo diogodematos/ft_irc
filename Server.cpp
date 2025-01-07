@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/07 16:00:45 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/07 18:14:24 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -237,8 +237,9 @@ void Server::handleClientMsg(int fd, std::string &msg)
 			send(fd, response.c_str(), response.length(), 0);
 			std::cout << "Responded to PING with PONG." << std::endl;
 		}
-		else if ((msg.rfind("JOIN #", 0) == 0) || (msg.rfind("JOIN &", 0) == 0))
+		else if (msg.rfind("JOIN #", 0) == 0)
 		{
+			size_t space = msg.find(' ', 5);
 			std::string channelName = msg.substr(6);
 
 			if (_clients[fd].getUsername().empty())
@@ -246,21 +247,53 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				std::string error = "First you need to set username!\r\n";
 				send(fd, error.c_str(), error.size(), 0);
 			}
-			// if channel does not exist, creates
+			
 			else
 			{
+				// if channel does not exist, creates
 				if (_channels.find(channelName) == _channels.end())
 				{
-					std::string debugger = "Channel " + channelName + " created!\r\n";
-					send(fd, debugger.c_str(), debugger.size(), 0);
+					std::string creation = "Channel " + channelName + " created!\r\n";
+					send(fd, creation.c_str(), creation.size(), 0);
 					_channels[channelName] = Channel(channelName);
-					_channels[channelName].addOperator(fd); // makes the first client the operator
+					_channels[channelName].addClient(&_clients[fd]); // makes the first client the operator
 				}
-				// add client to list
-				_channels[channelName].addClient(&_clients[fd]);
-				std::string response = "Joined Channel " + channelName + "\r\n";
-				send(fd, response.c_str(), response.size(), 0);
-				std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << channelName << "." << std::endl;
+				// if channel exist
+				else if (_channels[channelName].isInvOnly())
+				{
+					std::string error = "Channel " + channelName + " only accepts invites!\r\n";
+					send(fd, error.c_str(), error.size(), 0);
+				}
+				// if channel full
+				else if (!_channels[channelName].canAddUsr())
+				{
+					std::string error = "Channel full!\r\n";
+					send(fd, error.c_str(), error.size(), 0);
+				}
+				else if(_channels[channelName].isKeyProtected())
+				{
+					
+					std::string key = msg.substr(space + 1) + "\r\n";
+					if (!_channels[channelName].compareKey(key))
+					{
+						std::string error = "Wrong Channel key!\r\n";
+						send(fd, error.c_str(), error.size(), 0);
+					}
+					else
+					{
+						_channels[channelName].addClient(&_clients[fd]);
+						std::string response = "Joined Channel " + channelName + "\r\n";
+						send(fd, response.c_str(), response.size(), 0);
+						std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << channelName << "." << std::endl;
+					}
+				}
+				else
+				{
+					_channels[channelName].addClient(&_clients[fd]);
+					std::string response = "Joined Channel " + channelName + "\r\n";
+					send(fd, response.c_str(), response.size(), 0);
+					std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << channelName << "." << std::endl;
+				}
 			}
 		}
 		else if (msg.rfind("PART ", 0) == 0)
@@ -335,7 +368,7 @@ void Server::handleClientMsg(int fd, std::string &msg)
 			
 			if (_channels.find(target) != _channels.end())
 			{
-				if (_channels[target].isOperator(fd))
+				if (_channels[target].isOperator(fd) || _channels[target].isOwner(fd))
 					_channels[target].parseMessage(msg, fd);
 				else
 				{
