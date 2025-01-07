@@ -48,6 +48,10 @@ bool Channel::canAddUsr() {
 	return (_clientsCha.size() < _usrLimit);
 }
 
+bool Channel::compareKey(std::string &key) {
+	return (key == _keyCha);
+}
+
 // --------- SETTERS ---------
 
 void Channel::setTopic(const std::string &topic) {
@@ -91,6 +95,10 @@ void Channel::addRemOperator(int fd) {
 
 bool Channel::isOperator(int fd) const {
 	return std::find(_operatorsCha.begin(), _operatorsCha.end(), fd) != _operatorsCha.end();
+}
+
+bool Channel::isOwner(int fd) const {
+	return (_ownerCha == fd);
 }
 
 /*void Channel::inviteClient(Client *client) {

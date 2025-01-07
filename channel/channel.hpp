@@ -30,6 +30,7 @@ public:
 	bool isInvOnly();
 	bool isTopicRestr();
 	bool isKeyProtected();
+	bool compareKey(std::string &key);
 	bool canAddUsr();
 
 	//setters
