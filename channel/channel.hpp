@@ -41,8 +41,8 @@ public:
 	bool hasClient(int fd) const;
 
 	//operator management
-	void addOperator(int fd);
-	void removeOperator(int fd);
+	void addRemOperator(int fd);
+	//void removeOperator(int fd);
 	bool isOperator(int fd) const;
 	bool isOwner(int fd) const;
 
