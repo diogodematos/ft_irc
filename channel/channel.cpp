@@ -10,6 +10,7 @@ Channel::Channel(const std::string &name) {
 	_topicRestr = false;
 	_keyCha.clear();
 	_usrLimit = 100;
+}
 
 Channel::~Channel() {}
 
