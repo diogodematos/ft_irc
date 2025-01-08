@@ -49,6 +49,18 @@ bool Channel::compareKey(std::string &key) {
 	return (key == _keyCha);
 }
 
+size_t Channel::nUsers() {
+	return _clientsCha.size();
+}
+
+// --------- TOOLS ---------
+
+std::string Channel::capacity() {
+	std::stringstream ss;
+	ss << "(" << nUsers() << "/" << _usrLimit << ")";
+	return ss.str();
+}
+
 // --------- ADMIN MANAGEMENT ---------
 
 bool Channel::isOperator(int fd) const {
@@ -74,6 +86,7 @@ void Channel::addClient(Client *client) {
 		}
 		else
 			std::cout << "Client " << client->getFd() << " added to channel." << std::endl;
+		broadcastMsg(client->getNickname() + " joined your channel. " + capacity() + "\r\n", -1);
 		_clientsCha[client->getFd()] = client; // Store the pointer
 	}
 	else
@@ -144,7 +157,7 @@ void Channel::changeMode(std::vector<std::string> &rest, int sFd) {
 // --------- CLIENT MANAGEMENT ---------
 
 bool Channel::canAddUsr() {
-	return (_clientsCha.size() < _usrLimit);
+	return (nUsers() < _usrLimit);
 }
 
 /*void Channel::removeOperator(int fd) {

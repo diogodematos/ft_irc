@@ -31,7 +31,8 @@ public:
 	bool isKeyProtected();
 	bool compareKey(std::string &key);
 	bool canAddUsr();
-	int nUsers();
+	size_t nUsers();
+	std::string capacity();
 
 	// ----- Client management -----
 	void addClient(Client *client);
