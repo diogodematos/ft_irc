@@ -186,7 +186,11 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				send(fd, error.c_str(), error.size(), 0);
 			}
 			else
+			{
 				_clients[fd].setAuthenticated(true);
+				std::string info = "Access granted!\r\n";
+				Channel::sendMsg(fd, info);
+			}
 		}
 		else
 		{
