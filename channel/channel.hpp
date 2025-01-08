@@ -46,7 +46,7 @@ public:
 	std::string capacity();
 
 	// ----- Client Info -----
-	void inviteClient(std::vector<std::string> &rest, int sFd);
+	void inviteClient(Client *client);
 	void addClient(Client *client);
 	void removeClient(int fd);
 	bool hasClient(int fd) const;

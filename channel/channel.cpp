@@ -91,7 +91,7 @@ bool Channel::hasClient(int fd) const {
 }
 
 int Channel::hasClient(const std::string& name) const {
-	std::cout << "Checking if client exists: " << name << "\r\n"; // DEBUG
+	// std::cout << "Checking if client exists: " << name << "\r\n"; // DEBUG
 	std::map<int, Client*>::const_iterator it = _clientsCha.begin();
 	while (it != _clientsCha.end())
 		if (it->second->getNickname() == name)
@@ -141,8 +141,8 @@ void Channel::changeTopic(std::vector<std::string> &rest, int sFd) {
 	sendMsg(sFd, tmp);
 }
 
-void Channel::inviteClient(std::vector<std::string> &rest, int sFd) {
-	// Waiting on a getter from Server Class that gives me a client
+void Channel::inviteClient(Client *client) {
+	addClient(client);
 }
 
 void Channel::removeClient(int fd) {
@@ -276,6 +276,7 @@ std::string Channel::capacity() {
 	ss << "(" << nUsers() << "/" << _usrLimit << ")";
 	return ss.str();
 }
+
 /*void Channel::removeOperator(int fd) {
 	_operatorsCha.erase(std::remove(_operatorsCha.begin(), _operatorsCha.end(), fd), _operatorsCha.end());
 }*/
@@ -332,16 +333,14 @@ bool Channel::parseMessage(const std::string &msg, int sFd) {
 			Channel::kickClient(args, sFd);
 			break;
 		case 1:
-			send(sFd, "Trying to invt\n", 15, 0);
+			sendMsg(sFd, "Invites not working.");
 			//Channel::inviteClient(rest);
 			break;
 		case 2:
-			send(sFd, "Trying to topc\n", 15, 0);
-			//Channel::changeTopic(rest);
+			Channel::changeTopic(args, sFd);
 			break;
 		case 3:
-			send(sFd, "Trying to mode\n", 15, 0);
-			//Channel::changeMode(rest);
+			Channel::changeMode(args, sFd);
 			break;
 		default:
 			return false;
