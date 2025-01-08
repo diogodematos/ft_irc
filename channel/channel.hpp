@@ -22,8 +22,12 @@ private:
 	void inviteClient(std::vector<std::string> &rest, int sFd);
 	void changeTopic(std::vector<std::string> &rest, int sFd);
 	void changeMode(std::vector<std::string> &rest, int sFd);
-		// Modes:
-
+	//	Modes:
+	void setInvOnly();
+	void setTopicRst(int sFd);
+	void setKey(int sFd, std::string &key);
+	void setOp(std::string &name);
+	void setLimit(int sFd, size_t lim);
 
 public:
 	Channel();
@@ -50,8 +54,6 @@ public:
 	int hasClient(const std::string& name) const;
 
 	// ----- Operator/Owner Info -----
-	void addRemOperator(int fd);
-	//void removeOperator(int fd);
 	bool isOperator(int fd) const;
 	bool isOwner(int fd) const;
 

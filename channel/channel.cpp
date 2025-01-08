@@ -63,11 +63,6 @@ bool Channel::isOwner(int fd) const {
 	return (_ownerCha == fd);
 }
 
-void Channel::addRemOperator(int fd) {
-	if (std::find(_operatorsCha.begin(), _operatorsCha.end(), fd) == _operatorsCha.end())
-		_operatorsCha.push_back(fd);
-}
-
 void Channel::addClient(Client *client) {
 	if (client && canAddUsr())
 	{
@@ -151,33 +146,113 @@ void Channel::inviteClient(std::vector<std::string> &rest, int sFd) {
 }
 
 void Channel::changeMode(std::vector<std::string> &rest, int sFd) {
-	(void)rest;
-	std::string tmp = "Channel mode was changed successfully.\r\n";;
-	if (isOwner(sFd))
+	if (isOwner(sFd) || isOperator(sFd))
 	{
-		char mode = '\0';
+		if (rest[2].size() != 1)
+			return sendMsg(sFd, "Error: mode must be a single character.\r\n");
+		char mode = rest[2][0];
+		std::stringstream ss(rest[3]);
 		switch (mode) {
 			case 'i':
+				setInvOnly();
 				break;
 			case 't':
+				setTopicRst(sFd);
 				break;
 			case 'k':
+				setKey(sFd, rest[3]);
 				break;
 			case 'o':
+				setOp(rest[3]);
 				break;
 			case 'l':
+				setLimit(sFd, std::strtol(rest[3].c_str(), NULL, 0));
 				break;
 			default:
-				tmp = "Channel mode not found.\r\n";
+				return sendMsg(sFd, "Error: channel mode not found.\r\n");
 		}
 	}
 	else
-		tmp = "You don't have the privileges required to execute that operation.\r\n";
-	send(sFd, &tmp, tmp.size(), 0);
+		sendMsg(sFd, "Error: you don't have the privileges required to execute that operation.\r\n");
 }
 // ------ Modes ------
+void Channel::setInvOnly() {
+	if (!_invOnly)
+	{
+		_invOnly = true;
+		broadcastMsg("This channel was set to invite-only.\\r\\n\"", -1);
+	}
+	else
+	{
+		_invOnly = false;
+		broadcastMsg("Users can now join this channel.\\r\\n\"", -1);
+	}
+}
 
+void Channel::setTopicRst(int sFd) {
+	if (isOwner(sFd))
+	{
+		if (!_topicRestr)
+		{
+			_topicRestr = true;
+			broadcastMsg("This channel's topic was locked by the owner.\r\n", -1);
+		}
+		else
+		{
+			_topicRestr = false;
+			broadcastMsg("This channel's topic is now unlocked.\r\n", -1);
+		}
+	} else
+		sendMsg(sFd, "Error: only the owner can lock/unlock channel topics.\r\n");
 
+}
+
+void Channel::setKey(int sFd, std::string &key) {
+	if (_keyCha.empty())
+	{
+		_keyCha = key;
+		broadcastMsg("This channel is now key-protected.\r\n", -1);
+	}
+	else if (!_keyCha.empty() && _keyCha == key)
+	{
+		_keyCha.clear();
+		broadcastMsg("The channel's key was removed.\r\n", -1);
+	} else if (compareKey(key))
+		sendMsg(sFd, "Error: the given key does not match.\r\n");
+	else
+		sendMsg(sFd, "Error: unknown. Please try again\r\n");
+}
+
+void Channel::setOp(std::string &name) {
+	int fd = hasClient(name);
+
+	if (isOperator(fd))
+	{
+		_operatorsCha.erase(std::find(_operatorsCha.begin(), _operatorsCha.end(), fd));
+		broadcastMsg(name + " lost his operator permissions.\r\n", -1);
+	}
+	else
+	{
+		_operatorsCha.push_back(fd);
+		broadcastMsg(name + " was made a channel operator.\r\n", -1);
+	}
+}
+
+void Channel::setLimit(int sFd, size_t lim) {
+	if (!std::isdigit((int)lim))
+		return sendMsg(sFd, "Error: invalid limit.\r\n");
+	if (nUsers() > lim)
+		sendMsg(sFd, "Error: can't change limit, too many clients in channel.\r\n");
+	else if (lim > 100)
+		sendMsg(sFd, "Error: why the F*CK would you need more than 100 clients? Bandwidth isn't free...\r\n");
+	else
+	{
+		_usrLimit = lim;
+		std::stringstream ss;
+		ss << "User limit was changed to " << lim << ". " << capacity() << "\r\n";
+		broadcastMsg(ss.str(), -1);
+	}
+}
 
 // --------- CLIENT INFO ---------
 
