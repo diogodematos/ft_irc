@@ -53,14 +53,6 @@ size_t Channel::nUsers() {
 	return _clientsCha.size();
 }
 
-// --------- TOOLS ---------
-
-std::string Channel::capacity() {
-	std::stringstream ss;
-	ss << "(" << nUsers() << "/" << _usrLimit << ")";
-	return ss.str();
-}
-
 // --------- ADMIN MANAGEMENT ---------
 
 bool Channel::isOperator(int fd) const {
@@ -93,18 +85,18 @@ void Channel::addClient(Client *client) {
 		std::cerr << "Error: Attempted to add a null client to the channel." << std::endl;
 }
 
-void Channel::removeClient(int fd) {
-/*	if (isOperator(fd))
-		_operatorsCha.;*/
+/*void Channel::removeClient(int fd) {
+*//*	if (isOperator(fd))
+		_operatorsCha.;*//*
 	_clientsCha.erase(fd);
-}
+}*/
 
 bool Channel::hasClient(int fd) const {
 	return _clientsCha.find(fd) != _clientsCha.end();
 }
 
 int Channel::hasClient(const std::string& name) const {
-	std::cout << "Checking if client exists: " << name << std::endl;
+	std::cout << "Checking if client exists: " << name << "\r\n"; // DEBUG
 	std::map<int, Client*>::const_iterator it = _clientsCha.begin();
 	while (it != _clientsCha.end())
 		if (it->second->getNickname() == name)
@@ -114,23 +106,53 @@ int Channel::hasClient(const std::string& name) const {
 
 // --------- CHANNEL MANAGEMENT ---------
 
+void Channel::kickClient(std::vector<std::string> &rest, int sFd) {
+	// Server log
+	std::string kicker = _clientsCha.find(sFd)->second->getNickname();
+	std::cout << "Client " << kicker << " kicking " << rest[2].c_str() << "\r\n";
+
+	if (isOwner(sFd) || isOperator(sFd))
+	{
+		int kFd = hasClient(rest[2].c_str());
+		sendMsg(sFd, "Client not in channel\r\n");
+		if (kFd == sFd)
+			sendMsg(sFd, "Error: you cannot kick yourself.\r\n");
+		else if (kFd != -1)
+		{
+			_clientsCha.erase(kFd);
+			broadcastMsg(rest[2] + " has been kicked by " + kicker + ".\r\n", -1);
+			sendMsg(kFd, "You have been kicked from the channel.\r\n");
+		}
+		else
+			sendMsg(sFd, "Error: client not in channel\r\n");
+	}
+	else
+		sendMsg(sFd, "Error: you must be an operator to kick someone.");
+}
+
 void Channel::changeTopic(std::vector<std::string> &rest, int sFd) {
 	std::string tmp = "Channel topic was changed successfully.\r\n";
 	if (isOwner(sFd))
-		_topicChannel = rest[4];
+		_topicChannel = rest[2];
 	else if (isOperator(sFd))
 	{
 		if (isTopicRestr())
-			tmp = "Channel topic cannot be changed.\r\n";
+			tmp = "Error: channel topic cannot be changed.\r\n";
+		else
+			_topicChannel = rest[2];
 	}
 	else
-		tmp = "You don't have the privileges required to execute that operation.\r\n";
-	send(sFd, &tmp, tmp.size(), 0);
+		tmp = "Error: only operators or owners can change the topic.\r\n";
+	sendMsg(sFd, tmp);
+}
+
+void Channel::inviteClient(std::vector<std::string> &rest, int sFd) {
+	// Waiting on a getter from Server Class that gives me a client
 }
 
 void Channel::changeMode(std::vector<std::string> &rest, int sFd) {
 	(void)rest;
-	std::string tmp = "Channel topic was changed successfully.\r\n";;
+	std::string tmp = "Channel mode was changed successfully.\r\n";;
 	if (isOwner(sFd))
 	{
 		char mode = '\0';
@@ -153,13 +175,21 @@ void Channel::changeMode(std::vector<std::string> &rest, int sFd) {
 		tmp = "You don't have the privileges required to execute that operation.\r\n";
 	send(sFd, &tmp, tmp.size(), 0);
 }
+// ------ Modes ------
 
-// --------- CLIENT MANAGEMENT ---------
+
+
+// --------- CLIENT INFO ---------
 
 bool Channel::canAddUsr() {
 	return (nUsers() < _usrLimit);
 }
 
+std::string Channel::capacity() {
+	std::stringstream ss;
+	ss << "(" << nUsers() << "/" << _usrLimit << ")";
+	return ss.str();
+}
 /*void Channel::removeOperator(int fd) {
 	_operatorsCha.erase(std::remove(_operatorsCha.begin(), _operatorsCha.end(), fd), _operatorsCha.end());
 }*/
@@ -171,16 +201,16 @@ bool Channel::canAddUsr() {
 // --------- MESSAGE ---------
 
 void Channel::broadcastMsg(const std::string &msg, int sFd) { // Use sFd=-1 if making a broadcast from the server
-	std::string id;
+	std::string assembled;
 	if (sFd == -1)
-		id = "Server: " + msg;
+		assembled = "Server: " + msg;
 	else
-		id = _clientsCha.find(sFd)->second->getNickname() + ": " + msg;
+		assembled = _clientsCha.find(sFd)->second->getNickname() + ": " + msg;
 
 	for (std::map<int, Client*>::iterator it = _clientsCha.begin(); it != _clientsCha.end(); ++it) {
 		int fd = it->first; //gets the file descriptor
 		//if (fd != sender_fd) //does not send the msg to the sender --- why?
-		sendMsg(fd, id);
+		sendMsg(fd, assembled);
 	}
 }
 
@@ -189,23 +219,6 @@ void Channel::sendMsg(int fd, const std::string &msg) {
 }
 
 // --------- PARSING ---------
-
-/*static std::string extract(std::string rest, std::string nm) {
-	std::string extracted;
-	rest = rest.substr(rest.find(nm) + nm.length());
-	size_t idx = rest.find_first_not_of(" \t\v\n\r\f"); // skip a todos os whitespaces da std::isspace
-	if (idx != std::string::npos)
-	{
-		rest = rest.substr(idx); // faz com que a str seja tudo a seguir aos whitespaces
-
-		idx = rest.find_first_of(" \t\v\n\r\f"); // vai tentar ver se o valor esta entre espaços
-		if (idx != std::string::npos)
-			extracted = rest.substr(0, idx);
-		else
-			extracted = rest; // se nao esta entre espaços, vai o resto da str
-	}
-	return extracted; // se for empty(), e verificado a seguir
-}*/
 
 bool Channel::parseMessage(const std::string &msg, int sFd) {
 	std::vector<std::string> args;
@@ -250,6 +263,23 @@ bool Channel::parseMessage(const std::string &msg, int sFd) {
 	return true;
 }
 
+/*static std::string extract(std::string rest, std::string nm) {
+	std::string extracted;
+	rest = rest.substr(rest.find(nm) + nm.length());
+	size_t idx = rest.find_first_not_of(" \t\v\n\r\f"); // skip a todos os whitespaces da std::isspace
+	if (idx != std::string::npos)
+	{
+		rest = rest.substr(idx); // faz com que a str seja tudo a seguir aos whitespaces
+
+		idx = rest.find_first_of(" \t\v\n\r\f"); // vai tentar ver se o valor esta entre espaços
+		if (idx != std::string::npos)
+			extracted = rest.substr(0, idx);
+		else
+			extracted = rest; // se nao esta entre espaços, vai o resto da str
+	}
+	return extracted; // se for empty(), e verificado a seguir
+}*/
+
 /*bool Channel::parseMessage(const std::string &msg, int sender_fd) {
 	// Procura na msg as várias keywords
 	std::string ops[4] = { "KICK", "INVITE", "TOPIC", "MODE" };
@@ -289,32 +319,6 @@ bool Channel::parseMessage(const std::string &msg, int sFd) {
 	}
 	return true;
 }*/
-
- // --------- OPERATIONS ---------
-
-void Channel::kickClient(std::vector<std::string> &rest, int sFd) {
-	// Server log
-	std::string kicker = _clientsCha.find(sFd)->second->getNickname();
-	std::cout << "Client " << kicker << " kicking " << rest[2].c_str() << "\r\n";
-
-	if (isOwner(sFd) || isOperator(sFd))
-	{
-		int kFd = hasClient(rest[2].c_str());
-		sendMsg(sFd, "Client not in channel\r\n");
-		if (kFd == sFd)
-			sendMsg(sFd, "Error: you cannot kick yourself.\r\n");
-		else if (kFd != -1)
-		{
-			broadcastMsg(rest[2] + " has been kicked by " + kicker + ".\r\n", -1);
-			_clientsCha.erase(kFd);
-			//sendMsg(kFd, "You have been kicked from the channel");
-		}
-		else
-			sendMsg(sFd, "Client not in channel\r\n");
-	}
-	else
-		sendMsg(sFd, "Error: you must be an operator to kick someone.");
-}
 
  // --------- EXCEPTIONS ---------
  const char *Channel::WrongArgException::what() const throw() {
