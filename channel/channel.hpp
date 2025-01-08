@@ -3,7 +3,6 @@
 
 #include "../Server.hpp"
 class Client;
-class Server;
 
 class Channel {
 private:
@@ -19,7 +18,6 @@ private:
 
 	// ----- Operations -----
 	void kickClient(std::vector<std::string> &rest, int sFd);
-	void inviteClient(std::vector<std::string> &rest, int sFd);
 	void changeTopic(std::vector<std::string> &rest, int sFd);
 	void changeMode(std::vector<std::string> &rest, int sFd);
 	//	Modes:
@@ -48,6 +46,7 @@ public:
 	std::string capacity();
 
 	// ----- Client Info -----
+	void inviteClient(std::vector<std::string> &rest, int sFd);
 	void addClient(Client *client);
 	void removeClient(int fd);
 	bool hasClient(int fd) const;
