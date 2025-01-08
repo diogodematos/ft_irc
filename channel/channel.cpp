@@ -90,6 +90,14 @@ bool Channel::hasClient(int fd) const {
 	return _clientsCha.find(fd) != _clientsCha.end();
 }
 
+int Channel::hasClient(std::string &name) const {
+	std::map<int, Client*>::const_iterator it = _clientsCha.begin();
+	while (it != _clientsCha.end())
+		if (it->second->getNickname() == name)
+			return it->first;
+	return 0;
+}
+
 // --------- CHANNEL MANAGEMENT ---------
 
 void Channel::changeTopic(std::vector<std::string> &rest, int sFd) {
@@ -146,15 +154,19 @@ bool Channel::canAddUsr() {
 	addClient(client);
 }*/
 
+// --------- MESSAGE ---------
 
-
-void Channel::broadcastMsg(const std::string &msg, int sender_fd) {
+void Channel::broadcastMsg(const std::string &msg, int sFd) {
+	std::string joined = _clientsCha.find(sFd)->second->getNickname() + ": " + msg;
 	for (std::map<int, Client*>::iterator it = _clientsCha.begin(); it != _clientsCha.end(); ++it) {
 		int fd = it->first; //gets the file descriptor
-		if (fd != sender_fd) { //does not send the msg to the sender
-			send(fd, msg.c_str(), msg.size(), 0);
-		}
+		//if (fd != sender_fd) //does not send the msg to the sender --- why?
+		sendMsg(fd, joined.c_str());
 	}
+}
+
+void Channel::sendMsg(int fd, const std::string &msg) {
+	send(fd, msg.c_str(), msg.size(), 0);
 }
 
 // --------- PARSING ---------
@@ -269,11 +281,18 @@ bool Channel::parseMessage(const std::string &msg, int sFd) {
 
 void Channel::kickClient(std::vector<std::string> &rest, int sFd) {
 	// Server log
-	std::cout << "Client " << _clientsCha.find(sFd)->second->getNickname() << " kicked " << rest[2].c_str() << "\r\n";
+	std::cout << "Client " << _clientsCha.find(sFd)->second->getNickname() << " kicking " << rest[2].c_str() << "\r\n";
 
 	if (isOwner(sFd) || isOperator(sFd))
 	{
 		std::cout << "Permission granted.\r\n";
+
+		if (hasClient(rest[2]))
+		{
+
+		}
+		else
+			sendMsg(sFd, "Client not in channel\r\n");
 	}
 }
 

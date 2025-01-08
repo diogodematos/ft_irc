@@ -36,6 +36,7 @@ public:
 	void addClient(Client *client);
 	void removeClient(int fd);
 	bool hasClient(int fd) const;
+	int hasClient(std::string &name) const;
 
 	// ----- Operator/Owner management -----
 	void addRemOperator(int fd);
@@ -44,7 +45,8 @@ public:
 	bool isOwner(int fd) const;
 
 	// ----- Message -----
-	void broadcastMsg(const std::string &msg, int sender_fd);
+	void broadcastMsg(const std::string &msg, int sFd);
+	static void sendMsg(int fd, const std::string &msg);
 
 	//  ----- Parsing -----
 	bool parseMessage(const std::string &msg, int sFd);
