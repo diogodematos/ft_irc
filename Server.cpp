@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/07 18:14:24 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/08 17:44:02 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -406,4 +406,9 @@ void Server::signalHandler(int sig)
 		_active = 0;
 		std::cout << "\nCrtl + C called\r" << std::endl;
 	}
+}
+
+std::map<int, Client> Server::get_clients() const
+{
+	return _clients;
 }

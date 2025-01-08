@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:35:01 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/03 16:27:48 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/08 17:43:51 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,6 +57,9 @@ private:
 		void command(int fd, std::string &msg);
 		static void signalHandler(int sig);
 		void SignalDown();
+		
+		std::map<int, Client> get_clients() const;
+
 };
 
 #endif
