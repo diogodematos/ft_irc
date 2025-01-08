@@ -90,12 +90,13 @@ bool Channel::hasClient(int fd) const {
 	return _clientsCha.find(fd) != _clientsCha.end();
 }
 
-int Channel::hasClient(std::string &name) const {
+int Channel::hasClient(const std::string& name) const {
+	std::cout << "Checking if client exists: " << name << std::endl;
 	std::map<int, Client*>::const_iterator it = _clientsCha.begin();
 	while (it != _clientsCha.end())
 		if (it->second->getNickname() == name)
 			return it->first;
-	return 0;
+	return -1;
 }
 
 // --------- CHANNEL MANAGEMENT ---------
@@ -156,12 +157,17 @@ bool Channel::canAddUsr() {
 
 // --------- MESSAGE ---------
 
-void Channel::broadcastMsg(const std::string &msg, int sFd) {
-	std::string joined = _clientsCha.find(sFd)->second->getNickname() + ": " + msg;
+void Channel::broadcastMsg(const std::string &msg, int sFd) { // Use sFd=-1 if making a broadcast from the server
+	std::string id;
+	if (sFd == -1)
+		id = "Server: " + msg;
+	else
+		id = _clientsCha.find(sFd)->second->getNickname() + ": " + msg;
+
 	for (std::map<int, Client*>::iterator it = _clientsCha.begin(); it != _clientsCha.end(); ++it) {
 		int fd = it->first; //gets the file descriptor
 		//if (fd != sender_fd) //does not send the msg to the sender --- why?
-		sendMsg(fd, joined.c_str());
+		sendMsg(fd, id);
 	}
 }
 
@@ -209,9 +215,8 @@ bool Channel::parseMessage(const std::string &msg, int sFd) {
 	if (!foundCmd)
 		return foundCmd;
 
-	switch (i) { // manda o resto da msg para ser tratado e extraído o valor em cada funcao
+	switch (i) { // manda o resto da msg para ser tratada
 		case 0:
-			send(sFd, "Trying to kick", 15, 0);
 			Channel::kickClient(args, sFd);
 			break;
 		case 1:
@@ -272,28 +277,30 @@ bool Channel::parseMessage(const std::string &msg, int sFd) {
 	return true;
 }*/
 
-
- // --------- OPERATIONS ---------
-
-
-
  // --------- OPERATIONS ---------
 
 void Channel::kickClient(std::vector<std::string> &rest, int sFd) {
 	// Server log
-	std::cout << "Client " << _clientsCha.find(sFd)->second->getNickname() << " kicking " << rest[2].c_str() << "\r\n";
+	std::string kicker = _clientsCha.find(sFd)->second->getNickname();
+	std::cout << "Client " << kicker << " kicking " << rest[2].c_str() << "\r\n";
 
 	if (isOwner(sFd) || isOperator(sFd))
 	{
-		std::cout << "Permission granted.\r\n";
-
-		if (hasClient(rest[2]))
+		int kFd = hasClient(rest[2].c_str());
+		sendMsg(sFd, "Client not in channel\r\n");
+		if (kFd == sFd)
+			sendMsg(sFd, "Error: you cannot kick yourself.\r\n");
+		else if (kFd != -1)
 		{
-
+			broadcastMsg(rest[2] + " has been kicked by " + kicker + ".\r\n", -1);
+			_clientsCha.erase(kFd);
+			//sendMsg(kFd, "You have been kicked from the channel");
 		}
 		else
 			sendMsg(sFd, "Client not in channel\r\n");
 	}
+	else
+		sendMsg(sFd, "Error: you must be an operator to kick someone.");
 }
 
  // --------- EXCEPTIONS ---------

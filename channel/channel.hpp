@@ -31,12 +31,13 @@ public:
 	bool isKeyProtected();
 	bool compareKey(std::string &key);
 	bool canAddUsr();
+	int nUsers();
 
 	// ----- Client management -----
 	void addClient(Client *client);
 	void removeClient(int fd);
 	bool hasClient(int fd) const;
-	int hasClient(std::string &name) const;
+	int hasClient(const std::string& name) const;
 
 	// ----- Operator/Owner management -----
 	void addRemOperator(int fd);
