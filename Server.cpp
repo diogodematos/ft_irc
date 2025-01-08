@@ -373,7 +373,10 @@ void Server::handleClientMsg(int fd, std::string &msg)
 			if (_channels.find(target) != _channels.end())
 			{
 				if (_channels[target].isOperator(fd) || _channels[target].isOwner(fd))
-					_channels[target].parseMessage(msg, fd);
+				{
+					if (!_channels[target].parseMessage(msg, fd))
+						Channel::sendMsg(fd, "Error: Command not found!\r\n");
+				}
 				else
 				{
 					std::string error = "Error: Client isn't Channel Operator\r\n";
