@@ -47,13 +47,13 @@ public:
 	void broadcastMsg(const std::string &msg, int sender_fd);
 
 	//  ----- Parsing -----
-	bool parseMessage(const std::string &msg, int sender_fd);
+	bool parseMessage(const std::string &msg, int sFd);
 
 	// ----- Operations -----
-	void kickClient(std::string &rest, int sFd);
-	void inviteClient(std::string &rest, int sFd);
-	void changeTopic(std::string &rest, int sFd);
-	void changeMode(std::string &rest, int sFd);
+	void kickClient(std::vector<std::string> &rest, int sFd);
+	void inviteClient(std::vector<std::string> &rest, int sFd);
+	void changeTopic(std::vector<std::string> &rest, int sFd);
+	void changeMode(std::vector<std::string> &rest, int sFd);
 
 
 	// ----- Exceptions -----

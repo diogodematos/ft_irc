@@ -92,10 +92,10 @@ bool Channel::hasClient(int fd) const {
 
 // --------- CHANNEL MANAGEMENT ---------
 
-void Channel::changeTopic(std::string &rest, int sFd) {
+void Channel::changeTopic(std::vector<std::string> &rest, int sFd) {
 	std::string tmp = "Channel topic was changed successfully.\r\n";
 	if (isOwner(sFd))
-		_topicChannel = rest;
+		_topicChannel = rest[4];
 	else if (isOperator(sFd))
 	{
 		if (isTopicRestr())
@@ -106,7 +106,7 @@ void Channel::changeTopic(std::string &rest, int sFd) {
 	send(sFd, &tmp, tmp.size(), 0);
 }
 
-void Channel::changeMode(std::string &rest, int sFd) {
+void Channel::changeMode(std::vector<std::string> &rest, int sFd) {
 	(void)rest;
 	std::string tmp = "Channel topic was changed successfully.\r\n";;
 	if (isOwner(sFd))
@@ -159,7 +159,7 @@ void Channel::broadcastMsg(const std::string &msg, int sender_fd) {
 
 // --------- PARSING ---------
 
-static std::string extract(std::string rest, std::string nm) {
+/*static std::string extract(std::string rest, std::string nm) {
 	std::string extracted;
 	rest = rest.substr(rest.find(nm) + nm.length());
 	size_t idx = rest.find_first_not_of(" \t\v\n\r\f"); // skip a todos os whitespaces da std::isspace
@@ -174,9 +174,53 @@ static std::string extract(std::string rest, std::string nm) {
 			extracted = rest; // se nao esta entre espaços, vai o resto da str
 	}
 	return extracted; // se for empty(), e verificado a seguir
+}*/
+
+bool Channel::parseMessage(const std::string &msg, int sFd) {
+	std::vector<std::string> args;
+	std::stringstream ss(msg);
+	std::string token;
+
+	bool foundCmd = false;
+	int i;
+
+	while (ss >> token)
+		args.push_back(token);
+
+	std::string ops[4] = { "KICK", "INVITE", "TOPIC", "MODE" };
+	for (i = 0; i < 4; i++) {
+		if (args[0] == ops[i]){
+			foundCmd = true;
+			break;
+		}
+	}
+	if (!foundCmd)
+		return foundCmd;
+
+	switch (i) { // manda o resto da msg para ser tratado e extraído o valor em cada funcao
+		case 0:
+			send(sFd, "Trying to kick", 15, 0);
+			Channel::kickClient(args, sFd);
+			break;
+		case 1:
+			send(sFd, "Trying to invt\n", 15, 0);
+			//Channel::inviteClient(rest);
+			break;
+		case 2:
+			send(sFd, "Trying to topc\n", 15, 0);
+			//Channel::changeTopic(rest);
+			break;
+		case 3:
+			send(sFd, "Trying to mode\n", 15, 0);
+			//Channel::changeMode(rest);
+			break;
+		default:
+			return false;
+	}
+	return true;
 }
 
-bool Channel::parseMessage(const std::string &msg, int sender_fd) {
+/*bool Channel::parseMessage(const std::string &msg, int sender_fd) {
 	// Procura na msg as várias keywords
 	std::string ops[4] = { "KICK", "INVITE", "TOPIC", "MODE" };
 	std::string rest;
@@ -193,28 +237,28 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
 	if (rest.empty()) // Se nao encontrou comandos e argumentos na msg, retorna false
 		return false;
 
- 	switch (i) { // manda o resto da msg para ser tratado e extraído o valor em cada funcao
+	switch (i) { // manda o resto da msg para ser tratado e extraído o valor em cada funcao
 		case 0:
 			send(sender_fd, "Trying to kick\n", 15, 0);
 			Channel::kickClient(rest, sender_fd);
 			break;
 		case 1:
 			send(sender_fd, "Trying to invt\n", 15, 0);
- 			//Channel::inviteClient(rest);
- 			break;
- 		case 2:
+			//Channel::inviteClient(rest);
+			break;
+		case 2:
 			send(sender_fd, "Trying to topc\n", 15, 0);
- 			//Channel::changeTopic(rest);
- 			break;
- 		case 3:
+			//Channel::changeTopic(rest);
+			break;
+		case 3:
 			send(sender_fd, "Trying to mode\n", 15, 0);
- 			//Channel::changeMode(rest);
- 			break;
- 		default:
- 			return false;
- 	}
- 	return true;
- }
+			//Channel::changeMode(rest);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}*/
 
 
  // --------- OPERATIONS ---------
@@ -223,14 +267,15 @@ bool Channel::parseMessage(const std::string &msg, int sender_fd) {
 
  // --------- OPERATIONS ---------
 
- void Channel::kickClient(std::string &rest, int sFd) {
-	 (void)rest;
-	 send(sFd, "Kicked gingers\r\n", 15, 0);
-/* 	if (_clientsCha.find())
+void Channel::kickClient(std::vector<std::string> &rest, int sFd) {
+	// Server log
+	std::cout << "Client " << _clientsCha.find(sFd)->second->getNickname() << " kicked " << rest[2].c_str() << "\r\n";
+
+	if (isOwner(sFd) || isOperator(sFd))
 	{
-
-	}*/
- }
+		std::cout << "Permission granted.\r\n";
+	}
+}
 
  // --------- EXCEPTIONS ---------
  const char *Channel::WrongArgException::what() const throw() {
