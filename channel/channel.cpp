@@ -145,6 +145,17 @@ void Channel::inviteClient(std::vector<std::string> &rest, int sFd) {
 	// Waiting on a getter from Server Class that gives me a client
 }
 
+void Channel::removeClient(int fd) {
+	if (hasClient(fd))
+	{
+		_clientsCha.erase(fd);
+		std::stringstream ss;
+		ss << _clientsCha.find(fd)->second->getNickname() << " left the channel.\r\n";
+		broadcastMsg(ss.str(), -1);
+	} else
+		sendMsg(fd, "Error: unable to leave channel.\r\n");
+}
+
 void Channel::changeMode(std::vector<std::string> &rest, int sFd) {
 	if (isOwner(sFd) || isOperator(sFd))
 	{

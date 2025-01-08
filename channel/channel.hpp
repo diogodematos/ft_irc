@@ -49,7 +49,7 @@ public:
 
 	// ----- Client Info -----
 	void addClient(Client *client);
-	//void removeClient(int fd);
+	void removeClient(int fd);
 	bool hasClient(int fd) const;
 	int hasClient(const std::string& name) const;
 
