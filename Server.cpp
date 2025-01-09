@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/09 17:37:34 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/09 17:53:37 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -371,8 +371,6 @@ void Server::handleClientMsg(int fd, std::string &msg)
 			// std::string target = after_command.substr(idx, after_command.find_first_of(" \t\v\n\r\f", idx) - idx);
 			
 			std::istringstream iss(msg);
-			std::string message;
-			iss >> message;
 			std::string command, arg1, arg2, arg3;
 			iss >> command >> arg1 >> arg2 >> arg3;
 
@@ -407,7 +405,7 @@ void Server::handleClientMsg(int fd, std::string &msg)
 			}
 			else
 			{
-				std::string error = "Error: Channel not found\r\n";
+				std::string error = command + "\n" + arg1 + "\n" + arg2 + "\n" + arg3 + "\nError: Channel not found\r\n";
 				send(fd, error.c_str(), error.size(), 0);
 			}
 		}
