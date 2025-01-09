@@ -24,7 +24,7 @@ private:
 	void setInvOnly();
 	void setTopicRst(int sFd);
 	void setKey(int sFd, std::string &key);
-	void setOp(std::string &name);
+	void setOp(int sFd, std::string &name);
 	void setLimit(int sFd, size_t lim);
 
 public:

@@ -68,19 +68,19 @@ void Channel::addClient(Client *client) {
 	{
 		if (_clientsCha.empty())// && _operatorsCha.empty()) // First client to connect is automatically the owner
 		{
-			_ownerCha = client->getFd();
-			std::cout << "Client " << client->getFd() << " created channel " + _nameChannel + ".\r\n" << std::endl;
 			_clientsCha[client->getFd()] = client; // Store the pointer
+			_ownerCha = client->getFd();
+			std::cout << "Client " << client->getFd() << " created channel " + _nameChannel + ".\r\n"; // server log
 			broadcastMsg(client->getNickname() + " created the channel. " + capacity() + "\r\n", -1);
 		} else
 		{
 			broadcastMsg(client->getNickname() + " joined your channel. " + capacity() + "\r\n", -1);
 			_clientsCha[client->getFd()] = client; // Store the pointer
 		}
-		std::cout << "Client " << client->getFd() << " added to channel." << std::endl;
+		std::cout << "Client " << client->getFd() << " added to channel." << std::endl; // server log
 	}
 	else
-		std::cerr << "Error: Attempted to add a null client to the channel." << std::endl;
+		std::cerr << "Error: Attempted to add a null client to the channel." << std::endl; // server log
 }
 
 /*void Channel::removeClient(int fd) {
@@ -97,29 +97,31 @@ int Channel::hasClient(const std::string& name) const {
 	// std::cout << "Checking if client exists: " << name << "\r\n"; // DEBUG
 	std::map<int, Client*>::const_iterator it = _clientsCha.begin();
 	while (it != _clientsCha.end())
+	{
 		if (it->second->getNickname() == name)
 			return it->first;
+		++it;
+	}
 	return -1;
 }
 
 // --------- CHANNEL MANAGEMENT ---------
 
 void Channel::kickClient(std::vector<std::string> &rest, int sFd) {
-	// Server log
 	std::string kicker = _clientsCha.find(sFd)->second->getNickname();
-	std::cout << "Client " << kicker << " kicking " << rest[2].c_str() << "\r\n";
-
-	if (isOwner(sFd) || isOperator(sFd))
+	if (!hasClient(sFd))
+		sendMsg(sFd, "Error: you need to be in the channel to kick someone.\r\n");
+	else if (isOwner(sFd) || isOperator(sFd))
 	{
-		int kFd = hasClient(rest[2].c_str());
-		sendMsg(sFd, "Client not in channel\r\n");
+		int kFd = hasClient(rest[2]);
 		if (kFd == sFd)
 			sendMsg(sFd, "Error: you cannot kick yourself.\r\n");
 		else if (kFd != -1)
 		{
 			_clientsCha.erase(kFd);
-			broadcastMsg(rest[2] + " has been kicked by " + kicker + ".\r\n", -1);
+			broadcastMsg(rest[2] + " has been kicked by " + kicker + ". " + capacity() + "\r\n", -1);
 			sendMsg(kFd, "You have been kicked from the channel.\r\n");
+			std::cout << kicker << " kicked " << rest[2] << " from " << _nameChannel << ".\r\n";
 		}
 		else
 			sendMsg(sFd, "Error: client not in channel\r\n");
@@ -166,6 +168,7 @@ void Channel::changeMode(std::vector<std::string> &rest, int sFd) {
 			return sendMsg(sFd, "Error: mode must be a single character.\r\n");
 		char mode = rest[2][0];
 		std::stringstream ss(rest[3]);
+		sendMsg(sFd, "Entering switch for mode character.\r\n");
 		switch (mode) {
 			case 'i':
 				setInvOnly();
@@ -177,7 +180,7 @@ void Channel::changeMode(std::vector<std::string> &rest, int sFd) {
 				setKey(sFd, rest[3]);
 				break;
 			case 'o':
-				setOp(rest[3]);
+				setOp(sFd, rest[3]);
 				break;
 			case 'l':
 				setLimit(sFd, std::strtol(rest[3].c_str(), NULL, 0));
@@ -237,10 +240,12 @@ void Channel::setKey(int sFd, std::string &key) {
 		sendMsg(sFd, "Error: unknown. Please try again\r\n");
 }
 
-void Channel::setOp(std::string &name) {
+void Channel::setOp(int sFd, std::string &name) {
 	int fd = hasClient(name);
 
-	if (isOperator(fd))
+	if (fd < 0)
+		sendMsg(sFd, "Error: client not in channel.\r\n");
+	else if (isOperator(fd))
 	{
 		_operatorsCha.erase(std::find(_operatorsCha.begin(), _operatorsCha.end(), fd));
 		broadcastMsg(name + " lost his operator permissions.\r\n", -1);
