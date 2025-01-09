@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/08 17:44:02 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/09 17:37:34 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -366,15 +366,37 @@ void Server::handleClientMsg(int fd, std::string &msg)
 
 		else if (msg.rfind("KICK ", 0) == 0 || msg.rfind("TOPIC ", 0) == 0 || msg.rfind("MODE ", 0) == 0 || msg.rfind("INVITE ", 0) == 0)
 		{
-			std::string after_command = msg.substr(msg.find_first_of(" \t\v\n\r\f")) + "\r\n"; // found first whitespace
-			size_t idx = after_command.find_first_not_of(" \t\v\n\r\f");			  // found channel
-			std::string target = after_command.substr(idx, after_command.find_first_of(" \t\v\n\r\f", idx) - idx);
+			// std::string after_command = msg.substr(msg.find_first_of(" \t\v\n\r\f")) + "\r\n"; // found first whitespace
+			// size_t idx = after_command.find_first_not_of(" \t\v\n\r\f");			  // found channel
+			// std::string target = after_command.substr(idx, after_command.find_first_of(" \t\v\n\r\f", idx) - idx);
 			
-			if (_channels.find(target) != _channels.end())
+			std::istringstream iss(msg);
+			std::string message;
+			iss >> message;
+			std::string command, arg1, arg2, arg3;
+			iss >> command >> arg1 >> arg2 >> arg3;
+
+			if (command == "INVITE")
 			{
-				if (_channels[target].isOperator(fd) || _channels[target].isOwner(fd))
+				if (_channels.find(arg2) != _channels.end())
 				{
-					if (!_channels[target].parseMessage(msg, fd))
+					if (_channels[arg2].isOperator(fd) || _channels[arg2].isOwner(fd))
+					{
+						if (!_channels[arg2].parseMessage(msg, fd))
+							Channel::sendMsg(fd, "Error: Command not found!\r\n");
+					}
+					else
+					{
+						std::string error = "Error: Client isn't Channel Operator\r\n";
+						send(fd, error.c_str(), error.size(), 0);
+					}
+				}
+			}
+			if (_channels.find(arg1) != _channels.end())
+			{
+				if (_channels[arg1].isOperator(fd) || _channels[arg1].isOwner(fd))
+				{
+					if (!_channels[arg1].parseMessage(msg, fd))
 						Channel::sendMsg(fd, "Error: Command not found!\r\n");
 				}
 				else
