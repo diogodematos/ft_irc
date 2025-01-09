@@ -66,15 +66,18 @@ bool Channel::isOwner(int fd) const {
 void Channel::addClient(Client *client) {
 	if (client && canAddUsr())
 	{
-		if (_clientsCha.empty() && _operatorsCha.empty()) // First client to connect is automatically the owner
+		if (_clientsCha.empty())// && _operatorsCha.empty()) // First client to connect is automatically the owner
 		{
 			_ownerCha = client->getFd();
-			std::cout << "Client " << client->getFd() << " added to channel as founder." << std::endl;
+			std::cout << "Client " << client->getFd() << " created channel " + _nameChannel + ".\r\n" << std::endl;
+			_clientsCha[client->getFd()] = client; // Store the pointer
+			broadcastMsg(client->getNickname() + " created the channel. " + capacity() + "\r\n", -1);
+		} else
+		{
+			broadcastMsg(client->getNickname() + " joined your channel. " + capacity() + "\r\n", -1);
+			_clientsCha[client->getFd()] = client; // Store the pointer
 		}
-		else
-			std::cout << "Client " << client->getFd() << " added to channel." << std::endl;
-		broadcastMsg(client->getNickname() + " joined your channel. " + capacity() + "\r\n", -1);
-		_clientsCha[client->getFd()] = client; // Store the pointer
+		std::cout << "Client " << client->getFd() << " added to channel." << std::endl;
 	}
 	else
 		std::cerr << "Error: Attempted to add a null client to the channel." << std::endl;
