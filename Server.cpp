@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/09 17:53:37 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/09 18:36:40 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -365,11 +365,7 @@ void Server::handleClientMsg(int fd, std::string &msg)
 		}
 
 		else if (msg.rfind("KICK ", 0) == 0 || msg.rfind("TOPIC ", 0) == 0 || msg.rfind("MODE ", 0) == 0 || msg.rfind("INVITE ", 0) == 0)
-		{
-			// std::string after_command = msg.substr(msg.find_first_of(" \t\v\n\r\f")) + "\r\n"; // found first whitespace
-			// size_t idx = after_command.find_first_not_of(" \t\v\n\r\f");			  // found channel
-			// std::string target = after_command.substr(idx, after_command.find_first_of(" \t\v\n\r\f", idx) - idx);
-			
+{
 			std::istringstream iss(msg);
 			std::string command, arg1, arg2, arg3;
 			iss >> command >> arg1 >> arg2 >> arg3;
@@ -380,8 +376,20 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				{
 					if (_channels[arg2].isOperator(fd) || _channels[arg2].isOwner(fd))
 					{
-						if (!_channels[arg2].parseMessage(msg, fd))
-							Channel::sendMsg(fd, "Error: Command not found!\r\n");
+						for (unsigned int i = 0; i < _clients.size(); i++)
+						{
+							if (_clients[i].getNickname() == arg1)
+							{
+								if (!_channels[arg2].parseMessage(msg, fd))
+								Channel::sendMsg(fd, "Error: Command not found!\r\n");
+							}
+							if (_clients[i].getNickname() != arg1 && i == _clients.size()-1)
+							{
+								std::string error = "Error: Client Invited don't exists!\r\n";
+								send(fd, error.c_str(), error.size(), 0);
+							}
+						}
+							
 					}
 					else
 					{
@@ -390,7 +398,7 @@ void Server::handleClientMsg(int fd, std::string &msg)
 					}
 				}
 			}
-			if (_channels.find(arg1) != _channels.end())
+			else if (_channels.find(arg1) != _channels.end())
 			{
 				if (_channels[arg1].isOperator(fd) || _channels[arg1].isOwner(fd))
 				{
