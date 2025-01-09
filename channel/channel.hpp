@@ -11,6 +11,7 @@ private:
 	std::map<int, Client*> _clientsCha; // mapa dos fd's dos clientes
 	std::vector<int> _operatorsCha; // lista dos fd's dos operadores
 	int _ownerCha;
+	int _activUsr;
 	bool _invOnly;
 	bool _topicRestr;
 	std::string _keyCha;
@@ -42,11 +43,12 @@ public:
 	bool isKeyProtected();
 	bool compareKey(std::string &key);
 	bool canAddUsr();
-	size_t nUsers();
+	size_t activeUsers() const;
 	std::string capacity();
 
 	// ----- Client Info -----
-	void inviteClient(Client *client);
+	void inviteClient(int sFd, Client *client);
+	void inviteClient(std::vector<std::string> &args, int sFd);
 	void addClient(Client *client);
 	void removeClient(int fd);
 	bool hasClient(int fd) const;

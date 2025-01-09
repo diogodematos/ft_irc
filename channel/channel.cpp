@@ -6,6 +6,7 @@ Channel::Channel(const std::string &name) {
 	_nameChannel = name;
 	_topicChannel = "";
 	_ownerCha = -1;
+	_activUsr = 0;
 	_invOnly = false;
 	_topicRestr = false;
 	_keyCha.clear();
@@ -49,8 +50,8 @@ bool Channel::compareKey(std::string &key) {
 	return (key == _keyCha);
 }
 
-size_t Channel::nUsers() {
-	return _clientsCha.size();
+size_t Channel::activeUsers() const {
+	return _activUsr;
 }
 
 // --------- ADMIN MANAGEMENT ---------
@@ -146,16 +147,34 @@ void Channel::changeTopic(std::vector<std::string> &rest, int sFd) {
 	sendMsg(sFd, tmp);
 }
 
-void Channel::inviteClient(Client *client) {
-	addClient(client);
+void Channel::inviteClient(int sFd, Client *client) {
+	if (!hasClient(sFd))
+		sendMsg(sFd, "You need to be in a channel to invite someone.\r\n");
+	else if (hasClient(client->getFd()))
+		sendMsg(sFd, "Client already in channel.\r\n");
+	else
+	{
+		if (isOperator(sFd) || isOwner(sFd))
+		{
+			broadcastMsg(_clientsCha.find(sFd)->second->getNickname() + " invited " + client->getNickname() + " to this channel. " + capacity() + "\r\n", -1);
+			sendMsg(client->getFd(), _clientsCha.find(sFd)->second->getNickname() + " added you to this channel.\r\n");
+			_clientsCha[client->getFd()] = client; // Store the pointer
+		}
+		else
+			sendMsg(sFd, "You don't have permission to invite clients.\r\n");
+	}
+}
+
+void Channel::inviteClient(std::vector<std::string> &args, int sFd) {
+ // waiting
 }
 
 void Channel::removeClient(int fd) {
 	if (hasClient(fd))
 	{
-		_clientsCha.erase(fd);
 		std::stringstream ss;
 		ss << _clientsCha.find(fd)->second->getNickname() << " left the channel.\r\n";
+		_clientsCha.erase(fd);
 		broadcastMsg(ss.str(), -1);
 	} else
 		sendMsg(fd, "Error: unable to leave channel.\r\n");
@@ -260,7 +279,7 @@ void Channel::setOp(int sFd, std::string &name) {
 void Channel::setLimit(int sFd, size_t lim) {
 	if (!std::isdigit((int)lim))
 		return sendMsg(sFd, "Error: invalid limit.\r\n");
-	if (nUsers() > lim)
+	if (activeUsers() > lim)
 		sendMsg(sFd, "Error: can't change limit, too many clients in channel.\r\n");
 	else if (lim > 100)
 		sendMsg(sFd, "Error: why the F*CK would you need more than 100 clients? Bandwidth isn't free...\r\n");
@@ -276,12 +295,12 @@ void Channel::setLimit(int sFd, size_t lim) {
 // --------- CLIENT INFO ---------
 
 bool Channel::canAddUsr() {
-	return (nUsers() < _usrLimit);
+	return (activeUsers() < _usrLimit);
 }
 
 std::string Channel::capacity() {
 	std::stringstream ss;
-	ss << "(" << nUsers() << "/" << _usrLimit << ")";
+	ss << "(" << activeUsers() << "/" << _usrLimit << ")";
 	return ss.str();
 }
 
@@ -341,8 +360,7 @@ bool Channel::parseMessage(const std::string &msg, int sFd) {
 			Channel::kickClient(args, sFd);
 			break;
 		case 1:
-			sendMsg(sFd, "Invites not working.");
-			//Channel::inviteClient(rest);
+			Channel::inviteClient(args, sFd);
 			break;
 		case 2:
 			Channel::changeTopic(args, sFd);
