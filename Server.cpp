@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/09 18:36:40 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/10 14:28:04 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,6 +138,13 @@ void Server::run()
 					{
 						std::cout << "Client disconnected" << std::endl;
 						// Mandar a todos os channels que o user foi desconectado
+						
+						for (std::map<std::string, Channel>::iterator it = _channels.begin(); it != _channels.end(); ++it) 
+						{
+							if (it->second.hasClient(_poll_fds[i].fd)) 
+									it->second.removeClient(_poll_fds[i].fd);
+						}
+							
 						close(_poll_fds[i].fd);
 						
 						_clients.erase(_poll_fds[i].fd);

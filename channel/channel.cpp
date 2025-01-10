@@ -190,8 +190,9 @@ void Channel::removeClient(int fd) {
 	if (hasClient(fd))
 	{
 		std::stringstream ss;
-		ss << _clientsCha.find(fd)->second->getNickname() << " left the channel." + capacity() + "\r\n";
+		ss << _clientsCha.find(fd)->second->getNickname() << " left the channel.";
 		_clientsCha.erase(fd);
+		ss << capacity() + "\r\n";
 		broadcastMsg(ss.str(), -1);
 	}else
 		sendMsg(fd, "Error: unable to leave channel.\r\n");
