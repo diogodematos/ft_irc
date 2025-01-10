@@ -14,6 +14,7 @@ private:
 	int _activUsr;
 	bool _invOnly;
 	bool _topicRestr;
+	bool success;
 	std::string _keyCha;
 	size_t _usrLimit;
 

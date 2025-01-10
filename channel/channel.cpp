@@ -9,6 +9,7 @@ Channel::Channel(const std::string &name) {
 	_activUsr = 0;
 	_invOnly = false;
 	_topicRestr = false;
+	success = false;
 	_keyCha.clear();
 	_usrLimit = 100;
 }
@@ -51,7 +52,8 @@ bool Channel::compareKey(std::string &key) {
 }
 
 size_t Channel::activeUsers() const {
-	return _activUsr;
+	//return _activUsr;
+	return _clientsCha.size();
 }
 
 // --------- ADMIN MANAGEMENT ---------
@@ -75,8 +77,8 @@ void Channel::addClient(Client *client) {
 			broadcastMsg(client->getNickname() + " created the channel. " + capacity() + "\r\n", -1);
 		} else
 		{
-			broadcastMsg(client->getNickname() + " joined your channel. " + capacity() + "\r\n", -1);
 			_clientsCha[client->getFd()] = client; // Store the pointer
+			broadcastMsg(client->getNickname() + " joined your channel. " + capacity() + "\r\n", -1);
 		}
 		std::cout << "Client " << client->getFd() << " added to channel." << std::endl; // server log
 	}
@@ -148,6 +150,7 @@ void Channel::changeTopic(std::vector<std::string> &rest, int sFd) {
 }
 
 void Channel::inviteClient(int sFd, Client *client) {
+	success = false;
 	if (!hasClient(sFd))
 		sendMsg(sFd, "You need to be in a channel to invite someone.\r\n");
 	else if (hasClient(client->getFd()))
@@ -156,9 +159,10 @@ void Channel::inviteClient(int sFd, Client *client) {
 	{
 		if (isOperator(sFd) || isOwner(sFd))
 		{
-			broadcastMsg(_clientsCha.find(sFd)->second->getNickname() + " invited " + client->getNickname() + " to this channel. " + capacity() + "\r\n", -1);
-			sendMsg(client->getFd(), _clientsCha.find(sFd)->second->getNickname() + " added you to this channel.\r\n");
+			/*broadcastMsg(_clientsCha.find(sFd)->second->getNickname() + " invited " + client->getNickname() + " to this channel. " + capacity() + "\r\n", -1);
+			sendMsg(client->getFd(), _clientsCha.find(sFd)->second->getNickname() + " added you to this channel.\r\n");*/
 			_clientsCha[client->getFd()] = client; // Store the pointer
+			success = true;
 		}
 		else
 			sendMsg(sFd, "You don't have permission to invite clients.\r\n");
@@ -166,9 +170,20 @@ void Channel::inviteClient(int sFd, Client *client) {
 }
 
 void Channel::inviteClient(std::vector<std::string> &args, int sFd) {
- // waiting
-	(void)args;
-	(void)sFd;
+	int aux = hasClient(args[1]);
+	if (aux > 0 && success)
+	{
+		std::cout << _clientsCha.find(sFd)->second->getNickname() << " invited " + _clientsCha.find(aux)->second->getNickname() + "to" + _nameChannel + "\r\n";
+		broadcastMsg(_clientsCha.find(sFd)->second->getNickname() + " invited " + _clientsCha.find(aux)->second->getNickname() + " to this channel. " + capacity() + "\r\n", -1);
+		sendMsg(_clientsCha.find(aux)->second->getFd(), _clientsCha.find(sFd)->second->getNickname() + " added you to this channel.\r\n");
+		success = false;
+	}
+	else
+	{
+		std::cout << _clientsCha.find(sFd)->second->getNickname() << "'s invitation to " + _nameChannel + " failed.\r\n";
+		sendMsg(sFd, "Error: your invitation failed.\r\n");
+		sendMsg(aux, _clientsCha.find(sFd)->second->getNickname() + " was unable to invite you.\r\n");
+	}
 }
 
 void Channel::removeClient(int fd) {
@@ -178,7 +193,7 @@ void Channel::removeClient(int fd) {
 		ss << _clientsCha.find(fd)->second->getNickname() << " left the channel.\r\n";
 		_clientsCha.erase(fd);
 		broadcastMsg(ss.str(), -1);
-	} else
+	}else
 		sendMsg(fd, "Error: unable to leave channel.\r\n");
 }
 
@@ -375,63 +390,6 @@ bool Channel::parseMessage(const std::string &msg, int sFd) {
 	}
 	return true;
 }
-
-/*static std::string extract(std::string rest, std::string nm) {
-	std::string extracted;
-	rest = rest.substr(rest.find(nm) + nm.length());
-	size_t idx = rest.find_first_not_of(" \t\v\n\r\f"); // skip a todos os whitespaces da std::isspace
-	if (idx != std::string::npos)
-	{
-		rest = rest.substr(idx); // faz com que a str seja tudo a seguir aos whitespaces
-
-		idx = rest.find_first_of(" \t\v\n\r\f"); // vai tentar ver se o valor esta entre espaços
-		if (idx != std::string::npos)
-			extracted = rest.substr(0, idx);
-		else
-			extracted = rest; // se nao esta entre espaços, vai o resto da str
-	}
-	return extracted; // se for empty(), e verificado a seguir
-}*/
-
-/*bool Channel::parseMessage(const std::string &msg, int sender_fd) {
-	// Procura na msg as várias keywords
-	std::string ops[4] = { "KICK", "INVITE", "TOPIC", "MODE" };
-	std::string rest;
-	int i = 0;
-
-	for (i = 0; i < 4; i++){
-		if (int idx = msg.find(ops[i]) != std::string ::npos)
-		{
-			rest = extract(msg.substr(idx + ops[i].length()), this->_nameChannel); // copia tudo o que esta a frente do comando e channel
-			break;
-		}
-	}
-
-	if (rest.empty()) // Se nao encontrou comandos e argumentos na msg, retorna false
-		return false;
-
-	switch (i) { // manda o resto da msg para ser tratado e extraído o valor em cada funcao
-		case 0:
-			send(sender_fd, "Trying to kick\n", 15, 0);
-			Channel::kickClient(rest, sender_fd);
-			break;
-		case 1:
-			send(sender_fd, "Trying to invt\n", 15, 0);
-			//Channel::inviteClient(rest);
-			break;
-		case 2:
-			send(sender_fd, "Trying to topc\n", 15, 0);
-			//Channel::changeTopic(rest);
-			break;
-		case 3:
-			send(sender_fd, "Trying to mode\n", 15, 0);
-			//Channel::changeMode(rest);
-			break;
-		default:
-			return false;
-	}
-	return true;
-}*/
 
  // --------- EXCEPTIONS ---------
  const char *Channel::WrongArgException::what() const throw() {
