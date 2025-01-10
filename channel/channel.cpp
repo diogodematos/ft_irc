@@ -167,6 +167,8 @@ void Channel::inviteClient(int sFd, Client *client) {
 
 void Channel::inviteClient(std::vector<std::string> &args, int sFd) {
  // waiting
+	(void)args;
+	(void)sFd;
 }
 
 void Channel::removeClient(int fd) {
