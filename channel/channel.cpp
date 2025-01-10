@@ -218,7 +218,7 @@ void Channel::changeMode(std::vector<std::string> &rest, int sFd) {
 				setOp(sFd, rest[3]);
 				break;
 			case 'l':
-				setLimit(sFd, std::strtol(rest[3].c_str(), NULL, 0));
+				setLimit(sFd, rest[3]);
 				break;
 			default:
 				return sendMsg(sFd, "Error: channel mode not found.\r\n");
@@ -292,10 +292,13 @@ void Channel::setOp(int sFd, std::string &name) {
 	}
 }
 
-void Channel::setLimit(int sFd, size_t lim) {
-	if (!std::isdigit((int)lim))
+void Channel::setLimit(int sFd, std::string& arg) {
+	int lim;
+	std::stringstream ss2(arg);
+
+	if ((ss2 >> lim).fail() || lim < 1)
 		return sendMsg(sFd, "Error: invalid limit.\r\n");
-	if (activeUsers() > lim)
+	if (activeUsers() > (size_t)lim)
 		sendMsg(sFd, "Error: can't change limit, too many clients in channel.\r\n");
 	else if (lim > 100)
 		sendMsg(sFd, "Error: why the F*CK would you need more than 100 clients? Bandwidth isn't free...\r\n");
