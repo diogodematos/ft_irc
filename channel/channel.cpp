@@ -173,14 +173,14 @@ void Channel::inviteClient(std::vector<std::string> &args, int sFd) {
 	int aux = hasClient(args[1]);
 	if (aux > 0 && success)
 	{
-		std::cout << _clientsCha.find(sFd)->second->getNickname() << " invited " + _clientsCha.find(aux)->second->getNickname() + "to" + _nameChannel + "\r\n";
+		std::cout << _clientsCha.find(sFd)->second->getNickname() << " invited " + _clientsCha.find(aux)->second->getNickname() + " to " + _nameChannel + "\r\n"; // Server log
 		broadcastMsg(_clientsCha.find(sFd)->second->getNickname() + " invited " + _clientsCha.find(aux)->second->getNickname() + " to this channel. " + capacity() + "\r\n", -1);
 		sendMsg(_clientsCha.find(aux)->second->getFd(), _clientsCha.find(sFd)->second->getNickname() + " added you to this channel.\r\n");
 		success = false;
 	}
 	else
 	{
-		std::cout << _clientsCha.find(sFd)->second->getNickname() << "'s invitation to " + _nameChannel + " failed.\r\n";
+		std::cout << _clientsCha.find(sFd)->second->getNickname() << "'s invitation to " + _nameChannel + " failed.\r\n"; // Server log
 		sendMsg(sFd, "Error: your invitation failed.\r\n");
 		sendMsg(aux, _clientsCha.find(sFd)->second->getNickname() + " was unable to invite you.\r\n");
 	}
@@ -190,7 +190,7 @@ void Channel::removeClient(int fd) {
 	if (hasClient(fd))
 	{
 		std::stringstream ss;
-		ss << _clientsCha.find(fd)->second->getNickname() << " left the channel.\r\n";
+		ss << _clientsCha.find(fd)->second->getNickname() << " left the channel." + capacity() + "\r\n";
 		_clientsCha.erase(fd);
 		broadcastMsg(ss.str(), -1);
 	}else
