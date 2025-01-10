@@ -376,27 +376,27 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				{
 					if (_channels[arg2].isOperator(fd) || _channels[arg2].isOwner(fd))
 					{
-						for (unsigned int i = 0; i < _clients.size(); i++)
+						for (int i = 0; i < (int)_clients.size(); i++)
 						{
 							if (_clients[i].getNickname() == arg1)
 							{
+								_channels[arg2].inviteClient(fd, &_clients[i]);
 								if (!_channels[arg2].parseMessage(msg, fd))
-								Channel::sendMsg(fd, "Error: Command not found!\r\n");
+									Channel::sendMsg(fd, "Error: Command not found!\r\n");
 							}
-							if (_clients[i].getNickname() != arg1 && i == _clients.size()-1)
+							/*if (_clients[i].getNickname() != arg1 && i == _clients.size()-1)
 							{
 								std::string error = "Error: Client Invited don't exists!\r\n";
 								send(fd, error.c_str(), error.size(), 0);
-							}
+							}*/
 						}
 							
 					}
 					else
-					{
-						std::string error = "Error: Client isn't Channel Operator\r\n";
-						send(fd, error.c_str(), error.size(), 0);
-					}
+						Channel::sendMsg(fd, "Error: you don't have permission to invite someone.\r\n");
 				}
+				else
+					Channel::sendMsg(fd, "Error: channel doesn't exist!\r\n");
 			}
 			else if (_channels.find(arg1) != _channels.end())
 			{
