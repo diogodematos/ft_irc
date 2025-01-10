@@ -137,6 +137,7 @@ void Server::run()
 					if (valread <= 0)
 					{
 						std::cout << "Client disconnected" << std::endl;
+						// Mandar a todos os channels que o user foi desconectado
 						close(_poll_fds[i].fd);
 						
 						_clients.erase(_poll_fds[i].fd);
@@ -434,9 +435,4 @@ void Server::signalHandler(int sig)
 		_active = 0;
 		std::cout << "\nCrtl + C called\r" << std::endl;
 	}
-}
-
-std::map<int, Client> Server::get_clients() const
-{
-	return _clients;
 }

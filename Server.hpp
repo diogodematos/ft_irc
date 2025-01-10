@@ -56,10 +56,6 @@ private:
 		void handleClientMsg(int fd, std::string &msg);
 		void command(int fd, std::string &msg);
 		static void signalHandler(int sig);
-		void SignalDown();
-		
-		std::map<int, Client> get_clients() const;
-
 };
 
 #endif
