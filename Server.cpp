@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/10 14:28:04 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/10 17:31:06 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -142,7 +142,7 @@ void Server::run()
 						for (std::map<std::string, Channel>::iterator it = _channels.begin(); it != _channels.end(); ++it) 
 						{
 							if (it->second.hasClient(_poll_fds[i].fd)) 
-									it->second.removeClient(_poll_fds[i].fd);
+								it->second.removeClient(_poll_fds[i].fd);
 						}
 							
 						close(_poll_fds[i].fd);
@@ -174,21 +174,43 @@ void Server::command(int fd, std::string &msg)
 		_clients[fd].clearBuffer();
 		handleClientMsg(fd, command);
 	}
+	
+	//tentar que o o hexchat leia linha a linha o que manda no login
+	
+	// _clients[fd].bufferAppend(msg);
+	// //send(fd, msg.c_str(), msg.size(), 0);
+	// //size_t newpos = 0;
+	// size_t pos;
+	// while ((pos = (_clients[fd].buffer().find("\r\n")) != std::string::npos))
+	// {
+		
+	// 	std::string command = _clients[fd].buffer().substr(0, pos);
+	// 	send(fd, command.c_str(), command.size(), 0);
+	// 	_clients[fd].clearBuffer();
+	// 	//newpos = pos;
+	// 	handleClientMsg(fd, command);
+	// }
+	// //_clients[fd].clearBuffer();
 }
 
 void Server::handleClientMsg(int fd, std::string &msg)
 {
-	if (msg.rfind("CAP ", 0) == 0)
+	std::istringstream iss(msg);
+	std::string command, arg1, arg2, arg3, arg4;
+	iss >> command >> arg1 >> arg2 >> arg3 >> arg4;
+	
+	if (command == "CAP")
 	{
 		std::string hex = "Hello Hexchat Client!\r\n";
 		send(fd, hex.c_str(), hex.size(), 0);
+		//send(fd, msg.c_str(), msg.size(), 0);
+		
 	}
 	else if (!_clients[fd].getAutheticated())
 	{
-		if (msg.rfind("PASS ", 0) == 0)
+		if (command == "PASS")
 		{
-			std::string pass = msg.substr(5);
-			if (pass != _pass)
+			if (arg1 != _pass)
 			{
 				std::string error = "Error: Wrong Password!\r\n";
 				send(fd, error.c_str(), error.size(), 0);
@@ -208,18 +230,17 @@ void Server::handleClientMsg(int fd, std::string &msg)
 	}
 	else
 	{
-		if (msg.rfind("PASS ", 0) == 0)
+		if (command == "PASS")
 		{
 			std::string error = "Error: You are already authenticated!\r\n";
 			send(fd, error.c_str(), error.size(), 0);
 		}
-		else if (msg.rfind("NICK ", 0) == 0)
+		else if (command == "NICK")
 		{
-			std::string nickname = msg.substr(5);
-			_clients[fd].setNickname(nickname);
+			_clients[fd].setNickname(arg1);
 			std::cout << "Client: " << fd << " set nickname to: " << _clients[fd].getNickname() << std::endl;
 		}
-		else if (msg.rfind("USER ", 0) == 0)
+		else if (command == "USER")
 		{
 			if (_clients[fd].getNickname().empty())
 			{
@@ -228,125 +249,122 @@ void Server::handleClientMsg(int fd, std::string &msg)
 			}
 			else
 			{
-				std::istringstream iss(msg);
-				std::string command;
-				iss >> command;
-				std::string username, hostname, serverName, realname;
-				iss >> username >> hostname >> serverName;
-				std::getline(iss, realname);
-				_clients[fd].setUsername(username);
-				_clients[fd].setHostname(hostname);
-				_clients[fd].setRealName(realname);
+				_clients[fd].setUsername(arg1);
+				_clients[fd].setHostname(arg2);
+				_clients[fd].setRealName(arg4);
 				std::cout << "Client " << fd << " set USER info." << std::endl;
 				std::string welcome = "Welcome to the IRC server, " + _clients[fd].getNickname() + "!\r\n";
 				send(fd, welcome.c_str(), welcome.size(), 0);
 			}
 		}
-		else if (msg.rfind("PING ", 0) == 0)
+		else if (command == "PING")
 		{
 			std::string token = msg.substr(5);
 			std::string response = "PONG " + token + "\r\n";
 			send(fd, response.c_str(), response.length(), 0);
 			std::cout << "Responded to PING with PONG." << std::endl;
 		}
-		else if (msg.rfind("JOIN #", 0) == 0)
+		else if (command == "JOIN")
 		{
-			size_t space = msg.find(' ', 5);
-			std::string channelName = msg.substr(6);
+			// size_t space = msg.find(' ', 5);
+			// std::string channelName = msg.substr(6);
 
 			if (_clients[fd].getUsername().empty())
 			{
 				std::string error = "First you need to set username!\r\n";
 				send(fd, error.c_str(), error.size(), 0);
 			}
-			
+			else if (arg1.find('#')!= 0)
+			{
+				std::string error = "Wrong Channel!\r\n";
+				send(fd, error.c_str(), error.size(), 0);
+			}	
 			else
 			{
 				// if channel does not exist, creates
-				if (_channels.find(channelName) == _channels.end())
+				if (_channels.find(arg1) == _channels.end())
 				{
-					std::string creation = "Channel " + channelName + " created!\r\n";
+					std::string creation = "Channel " + arg1 + " created!\r\n";
 					send(fd, creation.c_str(), creation.size(), 0);
-					_channels[channelName] = Channel(channelName);
-					_channels[channelName].addClient(&_clients[fd]); // makes the first client the operator
+					_channels[arg1] = Channel(arg1);
+					_channels[arg1].addClient(&_clients[fd]); // makes the first client the operator
 				}
 				// if channel exist
-				else if (_channels[channelName].isInvOnly())
+				else if (_channels[arg1].isInvOnly())
 				{
-					std::string error = "Channel " + channelName + " only accepts invites!\r\n";
+					std::string error = "Channel " + arg1 + " only accepts invites!\r\n";
 					send(fd, error.c_str(), error.size(), 0);
 				}
 				// if channel full
-				else if (!_channels[channelName].canAddUsr())
+				else if (!_channels[arg1].canAddUsr())
 				{
 					std::string error = "Channel full!\r\n";
 					send(fd, error.c_str(), error.size(), 0);
 				}
-				else if(_channels[channelName].isKeyProtected())
+				else if(_channels[arg1].isKeyProtected())
 				{
 					
-					std::string key = msg.substr(space + 1) + "\r\n";
-					if (!_channels[channelName].compareKey(key))
+					// std::string key = msg.substr(space + 1) + "\r\n";
+					if (!_channels[arg1].compareKey(arg2))
 					{
 						std::string error = "Wrong Channel key!\r\n";
 						send(fd, error.c_str(), error.size(), 0);
 					}
 					else
 					{
-						_channels[channelName].addClient(&_clients[fd]);
-						std::string response = "Joined Channel " + channelName + "\r\n";
+						_channels[arg1].addClient(&_clients[fd]);
+						std::string response = "Joined Channel " + arg1 + "\r\n";
 						send(fd, response.c_str(), response.size(), 0);
-						std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << channelName << "." << std::endl;
+						std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << arg1 << "." << std::endl;
 					}
 				}
 				else
 				{
-					_channels[channelName].addClient(&_clients[fd]);
-					std::string response = "Joined Channel " + channelName + "\r\n";
+					_channels[arg1].addClient(&_clients[fd]);
+					std::string response = "Joined Channel " + arg1 + "\r\n";
 					send(fd, response.c_str(), response.size(), 0);
-					std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << channelName << "." << std::endl;
+					std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << arg1 << "." << std::endl;
 				}
 			}
 		}
-		else if (msg.rfind("PART ", 0) == 0)
+		else if (command == "PART")
 		{
-			std::string channelName = msg.substr(5);
-			if (_channels.find(channelName) != _channels.end() && _channels[channelName].hasClient(fd))
+			// std::string channelName = msg.substr(5);
+			if (_channels.find(arg1) != _channels.end() && _channels[arg1].hasClient(fd))
 			{
-				_channels[channelName].removeClient(fd);
+				_channels[arg1].removeClient(fd);
 
-				if (_channels[channelName].getClients().empty())
+				if (_channels[arg1].getClients().empty())
 				{
-					_channels.erase(channelName);
+					_channels.erase(arg1);
 				}
-				std::string response = "Left channel " + channelName + "\r\n";
+				std::string response = "Left channel " + arg1 + "\r\n";
 				send(fd, response.c_str(), response.size(), 0);
-
-				std::cout << "Client " << fd << " left channel " << channelName << "." << std::endl;
+				std::cout << "Client " << fd << " left channel " << arg1 << "." << std::endl;
 			}
 			else
 			{
-				std::string error = "Error: You are not in channel " + channelName + "\r\n";
+				std::string error = "Error: You are not in channel " + arg1 + "\r\n";
 				send(fd, error.c_str(), error.size(), 0);
 			}
 		}
-		else if (msg.rfind("PRIVMSG ", 0) == 0)
+		else if (command == "PRIVMSG")
 		{
 			size_t spacePos = msg.find(' ', 8);
-			if (spacePos == std::string::npos)
+			if (arg1.empty())
 			{
 				std::string error = "Error: Invalid PRIVMSG format\r\n";
 				send(fd, error.c_str(), error.size(), 0);
 			}
 			else
 			{
-				std::string target = msg.substr(8, spacePos - 8);
+				// std::string target = msg.substr(8, spacePos - 8);
 				std::string message = msg.substr(spacePos + 1) + "\r\n";
 				int check = 0;
 				// send msg to specific user
 				for (unsigned int i = 0; i < _clients.size(); i++)
 				{
-					if (_clients[i].getNickname() == target)
+					if (_clients[i].getNickname() == arg1)
 					{
 						send(i, message.c_str(), message.size(), 0);
 						check = 1;
@@ -355,14 +373,14 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				}
 				if (check == 0)
 				{
-					if (!_channels[target].hasClient(fd))
+					if (!_channels[arg1].hasClient(fd))
 					{
-						std::string error = "Error: You are not in channel " + target + "\r\n";
+						std::string error = "Error: You are not in channel " + arg1 + "\r\n";
 						send(fd, error.c_str(), error.size(), 0);
 					}
 					// send msg to a channel
-					else if (_channels.find(target) != _channels.end())
-						_channels[target].broadcastMsg(message, fd);
+					else if (_channels.find(arg1) != _channels.end())
+						_channels[arg1].broadcastMsg(message, fd);
 					else
 					{
 						std::string error = "Error: Channel not found\r\n";
@@ -374,9 +392,9 @@ void Server::handleClientMsg(int fd, std::string &msg)
 
 		else if (msg.rfind("KICK ", 0) == 0 || msg.rfind("TOPIC ", 0) == 0 || msg.rfind("MODE ", 0) == 0 || msg.rfind("INVITE ", 0) == 0)
 {
-			std::istringstream iss(msg);
-			std::string command, arg1, arg2, arg3;
-			iss >> command >> arg1 >> arg2 >> arg3;
+			// std::istringstream iss(msg);
+			// std::string command, arg1, arg2, arg3;
+			// iss >> command >> arg1 >> arg2 >> arg3;
 
 			if (command == "INVITE")
 			{
@@ -434,6 +452,265 @@ void Server::handleClientMsg(int fd, std::string &msg)
 		}
 	}
 }
+
+// void Server::handleClientMsg(int fd, std::string &msg)
+// {
+// 	if (msg.rfind("CAP ", 0) == 0)
+// 	{
+// 		std::string hex = "Hello Hexchat Client!\r\n";
+// 		send(fd, hex.c_str(), hex.size(), 0);
+// 	}
+// 	else if (!_clients[fd].getAutheticated())
+// 	{
+// 		if (msg.rfind("PASS ", 0) == 0)
+// 		{
+// 			std::string pass = msg.substr(5);
+// 			if (pass != _pass)
+// 			{
+// 				std::string error = "Error: Wrong Password!\r\n";
+// 				send(fd, error.c_str(), error.size(), 0);
+// 			}
+// 			else
+// 			{
+// 				_clients[fd].setAuthenticated(true);
+// 				std::string info = "Access granted!\r\n";
+// 				Channel::sendMsg(fd, info);
+// 			}
+// 		}
+// 		else
+// 		{
+// 			std::string error = "Error: First you need to put Password to authenticate!\r\n";
+// 			send(fd, error.c_str(), error.size(), 0);
+// 		}
+// 	}
+// 	else
+// 	{
+// 		if (msg.rfind("PASS ", 0) == 0)
+// 		{
+// 			std::string error = "Error: You are already authenticated!\r\n";
+// 			send(fd, error.c_str(), error.size(), 0);
+// 		}
+// 		else if (msg.rfind("NICK ", 0) == 0)
+// 		{
+// 			std::string nickname = msg.substr(5);
+// 			_clients[fd].setNickname(nickname);
+// 			std::cout << "Client: " << fd << " set nickname to: " << _clients[fd].getNickname() << std::endl;
+// 		}
+// 		else if (msg.rfind("USER ", 0) == 0)
+// 		{
+// 			if (_clients[fd].getNickname().empty())
+// 			{
+// 				std::string error = "First you need to set nickname!\r\n";
+// 				send(fd, error.c_str(), error.size(), 0);
+// 			}
+// 			else
+// 			{
+// 				std::istringstream iss(msg);
+// 				std::string command;
+// 				iss >> command;
+// 				std::string username, hostname, serverName, realname;
+// 				iss >> username >> hostname >> serverName;
+// 				std::getline(iss, realname);
+// 				_clients[fd].setUsername(username);
+// 				_clients[fd].setHostname(hostname);
+// 				_clients[fd].setRealName(realname);
+// 				std::cout << "Client " << fd << " set USER info." << std::endl;
+// 				std::string welcome = "Welcome to the IRC server, " + _clients[fd].getNickname() + "!\r\n";
+// 				send(fd, welcome.c_str(), welcome.size(), 0);
+// 			}
+// 		}
+// 		else if (msg.rfind("PING ", 0) == 0)
+// 		{
+// 			std::string token = msg.substr(5);
+// 			std::string response = "PONG " + token + "\r\n";
+// 			send(fd, response.c_str(), response.length(), 0);
+// 			std::cout << "Responded to PING with PONG." << std::endl;
+// 		}
+// 		else if (msg.rfind("JOIN #", 0) == 0)
+// 		{
+// 			size_t space = msg.find(' ', 5);
+// 			std::string channelName = msg.substr(6);
+
+// 			if (_clients[fd].getUsername().empty())
+// 			{
+// 				std::string error = "First you need to set username!\r\n";
+// 				send(fd, error.c_str(), error.size(), 0);
+// 			}
+			
+// 			else
+// 			{
+// 				// if channel does not exist, creates
+// 				if (_channels.find(channelName) == _channels.end())
+// 				{
+// 					std::string creation = "Channel " + channelName + " created!\r\n";
+// 					send(fd, creation.c_str(), creation.size(), 0);
+// 					_channels[channelName] = Channel(channelName);
+// 					_channels[channelName].addClient(&_clients[fd]); // makes the first client the operator
+// 				}
+// 				// if channel exist
+// 				else if (_channels[channelName].isInvOnly())
+// 				{
+// 					std::string error = "Channel " + channelName + " only accepts invites!\r\n";
+// 					send(fd, error.c_str(), error.size(), 0);
+// 				}
+// 				// if channel full
+// 				else if (!_channels[channelName].canAddUsr())
+// 				{
+// 					std::string error = "Channel full!\r\n";
+// 					send(fd, error.c_str(), error.size(), 0);
+// 				}
+// 				else if(_channels[channelName].isKeyProtected())
+// 				{
+					
+// 					std::string key = msg.substr(space + 1) + "\r\n";
+// 					if (!_channels[channelName].compareKey(key))
+// 					{
+// 						std::string error = "Wrong Channel key!\r\n";
+// 						send(fd, error.c_str(), error.size(), 0);
+// 					}
+// 					else
+// 					{
+// 						_channels[channelName].addClient(&_clients[fd]);
+// 						std::string response = "Joined Channel " + channelName + "\r\n";
+// 						send(fd, response.c_str(), response.size(), 0);
+// 						std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << channelName << "." << std::endl;
+// 					}
+// 				}
+// 				else
+// 				{
+// 					_channels[channelName].addClient(&_clients[fd]);
+// 					std::string response = "Joined Channel " + channelName + "\r\n";
+// 					send(fd, response.c_str(), response.size(), 0);
+// 					std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << channelName << "." << std::endl;
+// 				}
+// 			}
+// 		}
+// 		else if (msg.rfind("PART ", 0) == 0)
+// 		{
+// 			std::string channelName = msg.substr(5);
+// 			if (_channels.find(channelName) != _channels.end() && _channels[channelName].hasClient(fd))
+// 			{
+// 				_channels[channelName].removeClient(fd);
+
+// 				if (_channels[channelName].getClients().empty())
+// 				{
+// 					_channels.erase(channelName);
+// 				}
+// 				std::string response = "Left channel " + channelName + "\r\n";
+// 				send(fd, response.c_str(), response.size(), 0);
+
+// 				std::cout << "Client " << fd << " left channel " << channelName << "." << std::endl;
+// 			}
+// 			else
+// 			{
+// 				std::string error = "Error: You are not in channel " + channelName + "\r\n";
+// 				send(fd, error.c_str(), error.size(), 0);
+// 			}
+// 		}
+// 		else if (msg.rfind("PRIVMSG ", 0) == 0)
+// 		{
+// 			size_t spacePos = msg.find(' ', 8);
+// 			if (spacePos == std::string::npos)
+// 			{
+// 				std::string error = "Error: Invalid PRIVMSG format\r\n";
+// 				send(fd, error.c_str(), error.size(), 0);
+// 			}
+// 			else
+// 			{
+// 				std::string target = msg.substr(8, spacePos - 8);
+// 				std::string message = msg.substr(spacePos + 1) + "\r\n";
+// 				int check = 0;
+// 				// send msg to specific user
+// 				for (unsigned int i = 0; i < _clients.size(); i++)
+// 				{
+// 					if (_clients[i].getNickname() == target)
+// 					{
+// 						send(i, message.c_str(), message.size(), 0);
+// 						check = 1;
+// 						break;
+// 					}
+// 				}
+// 				if (check == 0)
+// 				{
+// 					if (!_channels[target].hasClient(fd))
+// 					{
+// 						std::string error = "Error: You are not in channel " + target + "\r\n";
+// 						send(fd, error.c_str(), error.size(), 0);
+// 					}
+// 					// send msg to a channel
+// 					else if (_channels.find(target) != _channels.end())
+// 						_channels[target].broadcastMsg(message, fd);
+// 					else
+// 					{
+// 						std::string error = "Error: Channel not found\r\n";
+// 						send(fd, error.c_str(), error.size(), 0);
+// 					}
+// 				}
+// 			}
+// 		}
+
+// 		else if (msg.rfind("KICK ", 0) == 0 || msg.rfind("TOPIC ", 0) == 0 || msg.rfind("MODE ", 0) == 0 || msg.rfind("INVITE ", 0) == 0)
+// {
+// 			std::istringstream iss(msg);
+// 			std::string command, arg1, arg2, arg3;
+// 			iss >> command >> arg1 >> arg2 >> arg3;
+
+// 			if (command == "INVITE")
+// 			{
+// 				if (_channels.find(arg2) != _channels.end())
+// 				{
+// 					if (_channels[arg2].isOperator(fd) || _channels[arg2].isOwner(fd))
+// 					{
+// 						for (int i = 0; i < (int)_clients.size(); i++)
+// 						{
+// 							if (_clients[i].getNickname() == arg1)
+// 							{
+// 								_channels[arg2].inviteClient(fd, &_clients[i]);
+// 								if (!_channels[arg2].parseMessage(msg, fd))
+// 									Channel::sendMsg(fd, "Error: Command not found!\r\n");
+// 							}
+// 							/*if (_clients[i].getNickname() != arg1 && i == _clients.size()-1)
+// 							{
+// 								std::string error = "Error: Client Invited don't exists!\r\n";
+// 								send(fd, error.c_str(), error.size(), 0);
+// 							}*/
+// 						}
+							
+// 					}
+// 					else
+// 						Channel::sendMsg(fd, "Error: you don't have permission to invite someone.\r\n");
+// 				}
+// 				else
+// 					Channel::sendMsg(fd, "Error: channel doesn't exist!\r\n");
+// 			}
+// 			else if (_channels.find(arg1) != _channels.end())
+// 			{
+// 				if (_channels[arg1].isOperator(fd) || _channels[arg1].isOwner(fd))
+// 				{
+// 					if (!_channels[arg1].parseMessage(msg, fd))
+// 						Channel::sendMsg(fd, "Error: Command not found!\r\n");
+// 				}
+// 				else
+// 				{
+// 					std::string error = "Error: Client isn't Channel Operator\r\n";
+// 					send(fd, error.c_str(), error.size(), 0);
+// 				}
+// 			}
+// 			else
+// 			{
+// 				std::string error = command + "\n" + arg1 + "\n" + arg2 + "\n" + arg3 + "\nError: Channel not found\r\n";
+// 				send(fd, error.c_str(), error.size(), 0);
+// 			}
+// 		}
+// 		else	
+// 		{
+// 			std::ostringstream oss;
+// 			oss << "Unknown command from client " << fd << ": " << msg << "\r\n";
+// 			std::string error = oss.str();
+// 			send(fd, error.c_str(), error.size(), 0);
+// 		}
+// 	}
+// }
 
 void Server::signalHandler(int sig)
 {
