@@ -204,7 +204,6 @@ void Channel::changeMode(std::vector<std::string> &rest, int sFd) {
 			return sendMsg(sFd, "Error: mode must be a single character.\r\n");
 		char mode = rest[2][0];
 		std::stringstream ss(rest[3]);
-		sendMsg(sFd, "Entering switch for mode character.\r\n");
 		switch (mode) {
 			case 'i':
 				setInvOnly();
