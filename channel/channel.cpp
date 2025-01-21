@@ -201,10 +201,9 @@ void Channel::removeClient(int fd) {
 void Channel::changeMode(std::vector<std::string> &rest, int sFd) {
 	if (isOwner(sFd) || isOperator(sFd))
 	{
-		if (rest[2].size() != 1)
+		if (rest.size() < 3 || rest[2].size() != 1)
 			return sendMsg(sFd, "Error: mode must be a single character.\r\n");
 		char mode = rest[2][0];
-		std::stringstream ss(rest[3]);
 		switch (mode) {
 			case 'i':
 				setInvOnly();
@@ -213,13 +212,16 @@ void Channel::changeMode(std::vector<std::string> &rest, int sFd) {
 				setTopicRst(sFd);
 				break;
 			case 'k':
-				setKey(sFd, rest[3]);
+				if (rest.size() == 4)
+					setKey(sFd, rest[3]);
 				break;
 			case 'o':
-				setOp(sFd, rest[3]);
+				if (rest.size() == 4)
+					setOp(sFd, rest[3]);
 				break;
 			case 'l':
-				setLimit(sFd, rest[3]);
+				if (rest.size() == 4)
+					setLimit(sFd, rest[3]);
 				break;
 			default:
 				return sendMsg(sFd, "Error: channel mode not found.\r\n");
@@ -233,12 +235,12 @@ void Channel::setInvOnly() {
 	if (!_invOnly)
 	{
 		_invOnly = true;
-		broadcastMsg("This channel was set to invite-only.\\r\\n\"", -1);
+		broadcastMsg("This channel was set to invite-only.\r\n\"", -1);
 	}
 	else
 	{
 		_invOnly = false;
-		broadcastMsg("Users can now join this channel.\\r\\n\"", -1);
+		broadcastMsg("Users can now join this channel.\r\n\"", -1);
 	}
 }
 

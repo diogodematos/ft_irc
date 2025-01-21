@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/21 16:44:24 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/21 18:22:52 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -305,8 +305,8 @@ void Server::handleClientMsg(int fd, std::string &msg)
 					_channels[arg1].sendToAllClients(join_message);  // Notify all clients of the new channel
 
 					// Optionally send mode or topic if applicable
-					std::string mode_message = "MODE " + arg1 + " +nt\r\n"; // Example: new channel is +n (no external messages) and +t (topic is set by operator)
-					send(fd, mode_message.c_str(), mode_message.size(), 0);
+					// std::string mode_message = ":MODE " + arg1 + " +o " + _clients[fd].getNickname() + "\r\n"; // Example: new channel is +n (no external messages) and +t (topic is set by operator)
+					// send(fd, mode_message.c_str(), mode_message.size(), 0);
 
 					std::string topic_message = "TOPIC " + arg1 + " :Welcome to " + arg1 + "!\r\n";
 					send(fd, topic_message.c_str(), topic_message.size(), 0);
