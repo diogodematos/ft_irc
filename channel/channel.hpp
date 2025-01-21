@@ -60,6 +60,7 @@ public:
 	bool isOwner(int fd) const;
 
 	// ----- Message -----
+	void sendToAllClients(const std::string &msg);
 	void broadcastMsg(const std::string &msg, int sFd);
 	static void sendMsg(int fd, const std::string &msg);
 

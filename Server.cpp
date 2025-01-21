@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: dcarrilh <dcarrilh@student.42porto.com>    +#+  +:+       +#+        */
+/*   By: dcarrilh <dcarrilh@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/10 17:31:06 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/21 16:44:24 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -167,31 +167,43 @@ void Server::command(int fd, std::string &msg)
 {
 	_clients[fd].bufferAppend(msg);
 
-	size_t pos;
-	while ((pos = _clients[fd].buffer().find("\r\n")) != std::string::npos)
-	{
-		std::string command = _clients[fd].buffer().substr(0, pos);
-		_clients[fd].clearBuffer();
-		handleClientMsg(fd, command);
-	}
-	
-	//tentar que o o hexchat leia linha a linha o que manda no login
-	
-	// _clients[fd].bufferAppend(msg);
-	// //send(fd, msg.c_str(), msg.size(), 0);
-	// //size_t newpos = 0;
 	// size_t pos;
-	// while ((pos = (_clients[fd].buffer().find("\r\n")) != std::string::npos))
+	// while ((pos = _clients[fd].buffer().find("\r\n")) != std::string::npos)
 	// {
-		
 	// 	std::string command = _clients[fd].buffer().substr(0, pos);
-	// 	send(fd, command.c_str(), command.size(), 0);
 	// 	_clients[fd].clearBuffer();
-	// 	//newpos = pos;
 	// 	handleClientMsg(fd, command);
 	// }
-	// //_clients[fd].clearBuffer();
+
+	std::vector<std::string> command;
+	std::string cmd;
+	std::istringstream iss(_clients[fd].buffer());
+	if (_clients[fd].buffer().find("\r\n") != std::string::npos)
+	{
+		std::string cmd;
+		std::istringstream iss(_clients[fd].buffer());
+		while(std::getline(iss, cmd))
+		{
+			size_t pos = cmd.find_first_of("\r\n");
+			if (pos != std::string::npos)
+				cmd = cmd.substr(0,pos);
+			command.push_back(cmd);
+		}
+		for (unsigned int i = 0; i < command.size(); i++)
+		{
+			handleClientMsg(fd, command[i]);
+		}
+		_clients[fd].clearBuffer();
+	}
 }
+
+// void Server::sendToAllClients(const std::string &msg)
+// {
+// 	for (unsigned int i = 0; i < _clients.size(); i++)
+// 	{
+// 		send(_clients[i].getFd(), msg.c_str(), msg.size(), 0);
+// 	}
+// }
 
 void Server::handleClientMsg(int fd, std::string &msg)
 {
@@ -288,6 +300,16 @@ void Server::handleClientMsg(int fd, std::string &msg)
 					send(fd, creation.c_str(), creation.size(), 0);
 					_channels[arg1] = Channel(arg1);
 					_channels[arg1].addClient(&_clients[fd]); // makes the first client the operator
+
+					std::string join_message = ":" + _clients[fd].getNickname() + " JOIN " + arg1 + "\r\n";
+					_channels[arg1].sendToAllClients(join_message);  // Notify all clients of the new channel
+
+					// Optionally send mode or topic if applicable
+					std::string mode_message = "MODE " + arg1 + " +nt\r\n"; // Example: new channel is +n (no external messages) and +t (topic is set by operator)
+					send(fd, mode_message.c_str(), mode_message.size(), 0);
+
+					std::string topic_message = "TOPIC " + arg1 + " :Welcome to " + arg1 + "!\r\n";
+					send(fd, topic_message.c_str(), topic_message.size(), 0);
 				}
 				// if channel exist
 				else if (_channels[arg1].isInvOnly())
@@ -313,6 +335,8 @@ void Server::handleClientMsg(int fd, std::string &msg)
 					else
 					{
 						_channels[arg1].addClient(&_clients[fd]);
+						std::string join_message = ":" + _clients[fd].getNickname() + " JOIN " + arg1 + "\r\n";
+						_channels[arg1].sendToAllClients(join_message);  // Notify all clients of the new channel
 						std::string response = "Joined Channel " + arg1 + "\r\n";
 						send(fd, response.c_str(), response.size(), 0);
 						std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << arg1 << "." << std::endl;
@@ -321,6 +345,8 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				else
 				{
 					_channels[arg1].addClient(&_clients[fd]);
+					std::string join_message = ":" + _clients[fd].getNickname() + " JOIN " + arg1 + "\r\n";
+					_channels[arg1].sendToAllClients(join_message);  // Notify all clients of the new channel
 					std::string response = "Joined Channel " + arg1 + "\r\n";
 					send(fd, response.c_str(), response.size(), 0);
 					std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << arg1 << "." << std::endl;
@@ -380,7 +406,11 @@ void Server::handleClientMsg(int fd, std::string &msg)
 					}
 					// send msg to a channel
 					else if (_channels.find(arg1) != _channels.end())
-						_channels[arg1].broadcastMsg(message, fd);
+					{
+						
+        				std::string channel_message = ":" + _clients[fd].getNickname() + " PRIVMSG " + arg1 + " " + message + "\r\n";
+						_channels[arg1].broadcastMsg(channel_message, fd);
+					}
 					else
 					{
 						std::string error = "Error: Channel not found\r\n";
@@ -442,6 +472,11 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				std::string error = command + "\n" + arg1 + "\n" + arg2 + "\n" + arg3 + "\nError: Channel not found\r\n";
 				send(fd, error.c_str(), error.size(), 0);
 			}
+		}
+		else if (command == "WHO")
+		{
+			int i;
+			i = 0;
 		}
 		else	
 		{

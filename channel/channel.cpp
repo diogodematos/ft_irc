@@ -334,17 +334,27 @@ std::string Channel::capacity() {
 
 // --------- MESSAGE ---------
 
+void Channel::sendToAllClients(const std::string &msg)
+{
+	for (std::map<int, Client*>::iterator it = _clientsCha.begin(); it != _clientsCha.end(); ++it) {
+		int fd = it->first; //gets the file descriptor
+		sendMsg(fd, msg);
+	}
+}
+
 void Channel::broadcastMsg(const std::string &msg, int sFd) { // Use sFd=-1 if making a broadcast from the server
 	std::string assembled;
 	if (sFd == -1)
 		assembled = "Server: " + msg;
-	else
-		assembled = _clientsCha.find(sFd)->second->getNickname() + ": " + msg;
-
+	// else
+	// {
+	// 	//assembled = _clientsCha.find(sFd)->second->getNickname() + ": " + msg;
+	// 	assembled = msg;
+	// }
 	for (std::map<int, Client*>::iterator it = _clientsCha.begin(); it != _clientsCha.end(); ++it) {
 		int fd = it->first; //gets the file descriptor
-		//if (fd != sender_fd) //does not send the msg to the sender --- why?
-		sendMsg(fd, assembled);
+		if (fd != sFd) //does not send the msg to the sender --- why?
+			sendMsg(fd, msg);
 	}
 }
 
