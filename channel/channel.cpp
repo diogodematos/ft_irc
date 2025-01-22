@@ -71,12 +71,37 @@ void Channel::addClient(Client *client) {
 	{
 		if (_clientsCha.empty())// && _operatorsCha.empty()) // First client to connect is automatically the owner
 		{
+			std::string	msgJoin = ":" + client->getNickname() + " JOIN " + _nameChannel + "\r\n";
+			sendMsg(client->getFd(), msgJoin);
+
+			std::string msgMode = ":" + client->getNickname()  + " MODE " + _nameChannel + " +t\r\n";
+			sendMsg(client->getFd(), msgMode);
+
+			std::string msgNamReply = ":localhost 353 " + client->getNickname() + " = " + _nameChannel + " :@" + client->getNickname() + "\r\n";
+			sendMsg(client->getFd(), msgNamReply);
+
+			std::string msgEndOfList = ":localhost 366 " + client->getNickname() + " " + _nameChannel + " :End of /NAMES list.\r\n";
+			sendMsg(client->getFd(), msgEndOfList);
+
 			_clientsCha[client->getFd()] = client; // Store the pointer
 			_ownerCha = client->getFd();
+			_operatorsCha.push_back(client->getFd());
 			std::cout << "Client " << client->getFd() << " created channel " + _nameChannel + ".\r\n"; // server log
 			broadcastMsg(client->getNickname() + " created the channel. " + capacity() + "\r\n", -1);
 		} else
 		{
+			std::string	msgJoin = ":" +client->getNickname() + " JOIN " + _nameChannel + "\r\n";
+			sendMsg(client->getFd(), msgJoin);
+
+			std::string msgNamReply = ":localhost 353 " +client->getNickname() + " = " + _nameChannel + " :" + getClist() + "\r\n";
+			sendMsg(client->getFd(), msgNamReply);
+
+			std::string msgEndOfList = ":localhost 366 " +client->getNickname() + " " + _nameChannel + " :End of /NAMES list.\r\n";
+			sendMsg(client->getFd(), msgEndOfList);
+
+			//send a messagem to all the members of the channel saying that someone joined the channel
+			std::string msgJoinBroadcast = ":" +client->getNickname() + " JOIN :" + _nameChannel + "\r\n";
+
 			_clientsCha[client->getFd()] = client; // Store the pointer
 			broadcastMsg(client->getNickname() + " joined your channel. " + capacity() + "\r\n", -1);
 		}
@@ -121,9 +146,11 @@ void Channel::kickClient(std::vector<std::string> &rest, int sFd) {
 			sendMsg(sFd, "Error: you cannot kick yourself.\r\n");
 		else if (kFd != -1)
 		{
+			std::string msgKick = ":" + kicker + " KICK " + _nameChannel + " " + _clientsCha.find(kFd)->second->getNickname() + "\r\n";
+			//broadcastMsg(rest[2] + " has been kicked by " + kicker + ". " + capacity() + "\r\n", -1);
+			sendToAllClients(msgKick);
 			_clientsCha.erase(kFd);
-			broadcastMsg(rest[2] + " has been kicked by " + kicker + ". " + capacity() + "\r\n", -1);
-			sendMsg(kFd, "You have been kicked from the channel.\r\n");
+			//sendMsg(kFd, "You have been kicked from the channel.\r\n");
 			std::cout << kicker << " kicked " << rest[2] << " from " << _nameChannel << ".\r\n";
 		}
 		else
@@ -189,6 +216,8 @@ void Channel::inviteClient(std::vector<std::string> &args, int sFd) {
 void Channel::removeClient(int fd) {
 	if (hasClient(fd))
 	{
+		std::string msgPart = ":" + _clientsCha.find(fd)->second->getNickname() + " PART " + _nameChannel + "\r\n";
+		sendToAllClients(msgPart);
 		std::stringstream ss;
 		ss << _clientsCha.find(fd)->second->getNickname() << " left the channel.";
 		_clientsCha.erase(fd);
@@ -285,11 +314,15 @@ void Channel::setOp(int sFd, std::string &name) {
 		sendMsg(sFd, "Error: client not in channel.\r\n");
 	else if (isOperator(fd))
 	{
+		std::string msgModeRemoveOperator = ":" + _clientsCha.find(sFd)->second->getNickname() + " MODE " + _nameChannel + " -o " + name + "\r\n";
+		sendToAllClients(msgModeRemoveOperator);
 		_operatorsCha.erase(std::find(_operatorsCha.begin(), _operatorsCha.end(), fd));
 		broadcastMsg(name + " lost his operator permissions.\r\n", -1);
 	}
 	else
 	{
+		std::string msgModeGiveOperator = ":" + _clientsCha.find(sFd)->second->getNickname() + " MODE " + _nameChannel + " +o " + name + "\r\n";
+		sendToAllClients(msgModeGiveOperator);
 		_operatorsCha.push_back(fd);
 		broadcastMsg(name + " was made a channel operator.\r\n", -1);
 	}
@@ -324,6 +357,18 @@ std::string Channel::capacity() {
 	std::stringstream ss;
 	ss << "(" << activeUsers() << "/" << _usrLimit << ")";
 	return ss.str();
+}
+
+std::string Channel::getClist() {
+	std::string output;
+
+	for (std::map<int, Client*>::iterator it = _clientsCha.begin(); it != _clientsCha.end(); ++it) {
+		if (isOperator(it->first) || isOwner(it->first))
+			output += "@";
+		output += it->second->getNickname();
+		output += " ";
+	}
+	return output;
 }
 
 /*void Channel::removeOperator(int fd) {

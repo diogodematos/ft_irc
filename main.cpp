@@ -19,12 +19,12 @@ bool isValidPort(std::string port)
     double num = std::strtod(iport, &res);
     if ((unsigned)strlen(res) != 0 || port.find(".") != std::string::npos)
     {
-        std::cerr << "Error: Port need be a number!" << std::endl;
+        std::cerr << "Error: Port must be a number!" << std::endl;
         return 0;
     }
     if(num < 1024 || num > 65535)
     {
-        std::cerr << "Error: Port need be between 1024 and 65535!" << std::endl;
+        std::cerr << "Error: Port needs to be between 1024 and 65535!" << std::endl;
         return 0;
     }
     return (1);

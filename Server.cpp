@@ -101,7 +101,7 @@ void Server::run()
 		}
 		if (poll_c == -1)
 		{
-			std::cerr << "Poll failed" << std::endl;
+			std::cerr << "Pool failed" << std::endl;
 			break;
 		}
 
@@ -236,7 +236,7 @@ void Server::handleClientMsg(int fd, std::string &msg)
 		}
 		else
 		{
-			std::string error = "Error: First you need to put Password to authenticate!\r\n";
+			std::string error = "Error: You need to enter the password first!\r\n";
 			send(fd, error.c_str(), error.size(), 0);
 		}
 	}
@@ -256,7 +256,7 @@ void Server::handleClientMsg(int fd, std::string &msg)
 		{
 			if (_clients[fd].getNickname().empty())
 			{
-				std::string error = "First you need to set nickname!\r\n";
+				std::string error = "You need to set a nickname first!\r\n";
 				send(fd, error.c_str(), error.size(), 0);
 			}
 			else
@@ -283,7 +283,7 @@ void Server::handleClientMsg(int fd, std::string &msg)
 
 			if (_clients[fd].getUsername().empty())
 			{
-				std::string error = "First you need to set username!\r\n";
+				std::string error = "You need to set a username first!\r\n";
 				send(fd, error.c_str(), error.size(), 0);
 			}
 			else if (arg1.find('#')!= 0)
@@ -379,7 +379,7 @@ void Server::handleClientMsg(int fd, std::string &msg)
 			size_t spacePos = msg.find(' ', 8);
 			if (arg1.empty())
 			{
-				std::string error = "Error: Invalid PRIVMSG format\r\n";
+				std::string error = "Error: Invalid PRIVMSG format!\r\n";
 				send(fd, error.c_str(), error.size(), 0);
 			}
 			else

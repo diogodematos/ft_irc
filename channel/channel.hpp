@@ -54,6 +54,7 @@ public:
 	void removeClient(int fd);
 	bool hasClient(int fd) const;
 	int hasClient(const std::string& name) const;
+	std::string getClist();
 
 	// ----- Operator/Owner Info -----
 	bool isOperator(int fd) const;
