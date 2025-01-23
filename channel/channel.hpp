@@ -50,7 +50,7 @@ public:
 	// ----- Client Info -----
 	void inviteClient(int sFd, Client *client);
 	void inviteClient(std::vector<std::string> &args, int sFd);
-	void addClient(Client *client);
+	void addClient(int sFd, Client *client);
 	void removeClient(int fd);
 	bool hasClient(int fd) const;
 	int hasClient(const std::string& name) const;

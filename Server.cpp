@@ -299,10 +299,10 @@ void Server::handleClientMsg(int fd, std::string &msg)
 					std::string creation = "Channel " + arg1 + " created!\r\n";
 					send(fd, creation.c_str(), creation.size(), 0);
 					_channels[arg1] = Channel(arg1);
-					_channels[arg1].addClient(&_clients[fd]); // makes the first client the operator
+					_channels[arg1].addClient(fd, &_clients[fd]); // makes the first client the operator
 
-					std::string join_message = ":" + _clients[fd].getNickname() + " JOIN " + arg1 + "\r\n";
-					_channels[arg1].sendToAllClients(join_message);  // Notify all clients of the new channel
+					//std::string join_message = ":" + _clients[fd].getNickname() + " JOIN " + arg1 + "\r\n";
+					//_channels[arg1].sendToAllClients(join_message);  // Notify all clients of the new channel
 
 					// Optionally send mode or topic if applicable
 					// std::string mode_message = ":MODE " + arg1 + " +o " + _clients[fd].getNickname() + "\r\n"; // Example: new channel is +n (no external messages) and +t (topic is set by operator)
@@ -334,9 +334,9 @@ void Server::handleClientMsg(int fd, std::string &msg)
 					}
 					else
 					{
-						_channels[arg1].addClient(&_clients[fd]);
-						std::string join_message = ":" + _clients[fd].getNickname() + " JOIN " + arg1 + "\r\n";
-						_channels[arg1].sendToAllClients(join_message);  // Notify all clients of the new channel
+						_channels[arg1].addClient(fd, &_clients[fd]);
+						//std::string join_message = ":" + _clients[fd].getNickname() + " JOIN " + arg1 + "\r\n";
+						//_channels[arg1].sendToAllClients(join_message);  // Notify all clients of the new channel
 						std::string response = "Joined Channel " + arg1 + "\r\n";
 						send(fd, response.c_str(), response.size(), 0);
 						std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << arg1 << "." << std::endl;
@@ -344,9 +344,9 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				}
 				else
 				{
-					_channels[arg1].addClient(&_clients[fd]);
-					std::string join_message = ":" + _clients[fd].getNickname() + " JOIN " + arg1 + "\r\n";
-					_channels[arg1].sendToAllClients(join_message);  // Notify all clients of the new channel
+					_channels[arg1].addClient(fd, &_clients[fd]);
+					//std::string join_message = ":" + _clients[fd].getNickname() + " JOIN " + arg1 + "\r\n";
+					//_channels[arg1].sendToAllClients(join_message);  // Notify all clients of the new channel
 					std::string response = "Joined Channel " + arg1 + "\r\n";
 					send(fd, response.c_str(), response.size(), 0);
 					std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << arg1 << "." << std::endl;

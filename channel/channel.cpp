@@ -66,46 +66,47 @@ bool Channel::isOwner(int fd) const {
 	return (_ownerCha == fd);
 }
 
-void Channel::addClient(Client *client) {
+void Channel::addClient(int sFd, Client *client) {
 	if (client && canAddUsr())
 	{
 		if (_clientsCha.empty())// && _operatorsCha.empty()) // First client to connect is automatically the owner
 		{
+			_clientsCha[sFd] = client; // Store the pointer
+			_ownerCha = sFd;
+			_operatorsCha.push_back(sFd);
+
 			std::string	msgJoin = ":" + client->getNickname() + " JOIN " + _nameChannel + "\r\n";
-			sendMsg(client->getFd(), msgJoin);
+			sendToAllClients(msgJoin);
 
-			std::string msgMode = ":" + client->getNickname()  + " MODE " + _nameChannel + " +t\r\n";
-			sendMsg(client->getFd(), msgMode);
+			std::string msgMode = ":" + client->getNickname()  + " MODE " + _nameChannel + " o\r\n";
+			sendToAllClients(msgMode);
 
-			std::string msgNamReply = ":localhost 353 " + client->getNickname() + " = " + _nameChannel + " :@" + client->getNickname() + "\r\n";
-			sendMsg(client->getFd(), msgNamReply);
+			std::string msgNamReply = ":127.0.0.1 353 " + client->getNickname() + " = " + _nameChannel + " :@" + client->getNickname() + "\r\n";
+			sendToAllClients(msgNamReply);
 
-			std::string msgEndOfList = ":localhost 366 " + client->getNickname() + " " + _nameChannel + " :End of /NAMES list.\r\n";
-			sendMsg(client->getFd(), msgEndOfList);
+			std::string msgEndOfList = ":127.0.0.1 366 " + client->getNickname() + " " + _nameChannel + " :End of /NAMES list.\r\n";
+			sendToAllClients(msgEndOfList);
 
-			_clientsCha[client->getFd()] = client; // Store the pointer
-			_ownerCha = client->getFd();
-			_operatorsCha.push_back(client->getFd());
 			std::cout << "Client " << client->getFd() << " created channel " + _nameChannel + ".\r\n"; // server log
 			broadcastMsg(client->getNickname() + " created the channel. " + capacity() + "\r\n", -1);
 		} else
 		{
+			_clientsCha[sFd] = client; // Store the pointer
 			std::string	msgJoin = ":" +client->getNickname() + " JOIN " + _nameChannel + "\r\n";
-			sendMsg(client->getFd(), msgJoin);
+			sendToAllClients(msgJoin);
 
-			std::string msgNamReply = ":localhost 353 " +client->getNickname() + " = " + _nameChannel + " :" + getClist() + "\r\n";
-			sendMsg(client->getFd(), msgNamReply);
+			std::string msgNamReply = ":127.0.0.1 353 " + client->getNickname() + " = " + _nameChannel + " :" + getClist() + "\r\n";
+			sendToAllClients(msgNamReply);
 
-			std::string msgEndOfList = ":localhost 366 " +client->getNickname() + " " + _nameChannel + " :End of /NAMES list.\r\n";
-			sendMsg(client->getFd(), msgEndOfList);
+			std::string msgEndOfList = ":127.0.0.1 366 " + client->getNickname() + " " + _nameChannel + " :End of /NAMES list.\r\n";
+			sendToAllClients(msgEndOfList);
 
 			//send a messagem to all the members of the channel saying that someone joined the channel
-			std::string msgJoinBroadcast = ":" +client->getNickname() + " JOIN :" + _nameChannel + "\r\n";
+			std::string msgJoinBroadcast = ":" + client->getNickname() + " JOIN :" + _nameChannel + "\r\n";
 
-			_clientsCha[client->getFd()] = client; // Store the pointer
 			broadcastMsg(client->getNickname() + " joined your channel. " + capacity() + "\r\n", -1);
 		}
-		std::cout << "Client " << client->getFd() << " added to channel." << std::endl; // server log
+		std::cout << "Client " << sFd << " added to channel." << std::endl; // server log
 	}
 	else
 		std::cerr << "Error: Attempted to add a null client to the channel." << std::endl; // server log
@@ -169,7 +170,11 @@ void Channel::changeTopic(std::vector<std::string> &rest, int sFd) {
 		if (isTopicRestr())
 			tmp = "Error: channel topic cannot be changed.\r\n";
 		else
+		{
 			_topicChannel = rest[2];
+			std::string topic_message = "TOPIC " + _nameChannel + " :" + _topicChannel + "\r\n";
+			sendToAllClients(topic_message);
+		}
 	}
 	else
 		tmp = "Error: only operators or owners can change the topic.\r\n";
@@ -188,7 +193,8 @@ void Channel::inviteClient(int sFd, Client *client) {
 		{
 			/*broadcastMsg(_clientsCha.find(sFd)->second->getNickname() + " invited " + client->getNickname() + " to this channel. " + capacity() + "\r\n", -1);
 			sendMsg(client->getFd(), _clientsCha.find(sFd)->second->getNickname() + " added you to this channel.\r\n");*/
-			_clientsCha[client->getFd()] = client; // Store the pointer
+			//_clientsCha[client->getFd()] = client; // Store the pointer
+			addClient(client->getFd(), client);
 			success = true;
 		}
 		else
@@ -200,9 +206,15 @@ void Channel::inviteClient(std::vector<std::string> &args, int sFd) {
 	int aux = hasClient(args[1]);
 	if (aux > 0 && success)
 	{
+		std::string msgInviting = ":127.0.0.1 341 " + _clientsCha.find(sFd)->second->getNickname() + " " + _clientsCha.find(aux)->second->getNickname() + " " + _nameChannel + "\r\n";
+		sendMsg(sFd, msgInviting);
+
+		std::string	msgInvite = ":" + _clientsCha.find(sFd)->second->getNickname() + " INVITE " + _clientsCha.find(aux)->second->getNickname() + " " + _nameChannel + "\r\n";
+		sendMsg(aux, msgInvite);
+
 		std::cout << _clientsCha.find(sFd)->second->getNickname() << " invited " + _clientsCha.find(aux)->second->getNickname() + " to " + _nameChannel + "\r\n"; // Server log
-		broadcastMsg(_clientsCha.find(sFd)->second->getNickname() + " invited " + _clientsCha.find(aux)->second->getNickname() + " to this channel. " + capacity() + "\r\n", -1);
-		sendMsg(_clientsCha.find(aux)->second->getFd(), _clientsCha.find(sFd)->second->getNickname() + " added you to this channel.\r\n");
+		//broadcastMsg(_clientsCha.find(sFd)->second->getNickname() + " invited " + _clientsCha.find(aux)->second->getNickname() + " to this channel. " + capacity() + "\r\n", -1);
+		//sendMsg(_clientsCha.find(aux)->second->getFd(), _clientsCha.find(sFd)->second->getNickname() + " added you to this channel.\r\n");
 		success = false;
 	}
 	else
