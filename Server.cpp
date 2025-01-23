@@ -436,9 +436,17 @@ void Server::handleClientMsg(int fd, std::string &msg)
 						{
 							if (_clients[i].getNickname() == arg1)
 							{
-								_channels[arg2].inviteClient(fd, &_clients[i]);
-								if (!_channels[arg2].parseMessage(msg, fd))
+								if (_clients[i].getUsername().empty())
+								{
+									std::string error = "You need to set a username first!\r\n";
+									send(fd, error.c_str(), error.size(), 0);
+								}
+								else
+								{
+									_channels[arg2].inviteClient(fd, &_clients[i]);
+									if (!_channels[arg2].parseMessage(msg, fd))
 									Channel::sendMsg(fd, "Error: Command not found!\r\n");
+								}
 							}
 							/*if (_clients[i].getNickname() != arg1 && i == _clients.size()-1)
 							{
