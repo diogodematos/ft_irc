@@ -367,7 +367,11 @@ void Channel::setLimit(int sFd, std::string& arg) {
 		_usrLimit = lim;
 		std::stringstream ss;
 		ss << "User limit was changed to " << lim << ". " << capacity() << "\r\n";
-		broadcastMsg(ss.str(), -1);
+		sendMsg(sFd, ss.str());
+		ss.clear();
+		ss << lim;
+		std::string limit = ":" + _clientsCha.find(sFd)->second->getNickname() + " MODE " + _nameChannel + " +l " + ss.str() + "\r\n";
+		sendToAllClients(limit);
 	}
 }
 
