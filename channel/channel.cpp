@@ -147,9 +147,9 @@ void Channel::kickClient(std::vector<std::string> &rest, int sFd) {
 			sendMsg(sFd, "Error: you cannot kick yourself.\r\n");
 		else if (kFd != -1)
 		{
-			std::string msgKick = ":" + kicker + " KICK " + _nameChannel + " " + _clientsCha.find(kFd)->second->getNickname() + "\r\n";
+			std::string kick = ":" + kicker + " KICK " + _nameChannel + " " + _clientsCha.find(kFd)->second->getNickname() + "\r\n";
 			//broadcastMsg(rest[2] + " has been kicked by " + kicker + ". " + capacity() + "\r\n", -1);
-			sendToAllClients(msgKick);
+			sendToAllClients(kick);
 			_clientsCha.erase(kFd);
 			//sendMsg(kFd, "You have been kicked from the channel.\r\n");
 			std::cout << kicker << " kicked " << rest[2] << " from " << _nameChannel << ".\r\n";
@@ -172,8 +172,8 @@ void Channel::changeTopic(std::vector<std::string> &rest, int sFd) {
 		else
 		{
 			_topicChannel = rest[2];
-			std::string topic_message = "TOPIC " + _nameChannel + " :" + _topicChannel + "\r\n";
-			sendToAllClients(topic_message);
+			std::string topic = "TOPIC " + _nameChannel + " :" + _topicChannel + "\r\n";
+			sendToAllClients(topic);
 		}
 	}
 	else
@@ -206,11 +206,11 @@ void Channel::inviteClient(std::vector<std::string> &args, int sFd) {
 	int aux = hasClient(args[1]);
 	if (aux > 0 && success)
 	{
-		std::string msgInviting = ":127.0.0.1 341 " + _clientsCha.find(sFd)->second->getNickname() + " " + _clientsCha.find(aux)->second->getNickname() + " " + _nameChannel + "\r\n";
-		sendMsg(sFd, msgInviting);
+		std::string inviter = ":127.0.0.1 341 " + _clientsCha.find(sFd)->second->getNickname() + " " + _clientsCha.find(aux)->second->getNickname() + " " + _nameChannel + "\r\n";
+		sendMsg(sFd, inviter);
 
-		std::string	msgInvite = ":" + _clientsCha.find(sFd)->second->getNickname() + " INVITE " + _clientsCha.find(aux)->second->getNickname() + " " + _nameChannel + "\r\n";
-		sendMsg(aux, msgInvite);
+		std::string	invited = ":" + _clientsCha.find(sFd)->second->getNickname() + " INVITE " + _clientsCha.find(aux)->second->getNickname() + " " + _nameChannel + "\r\n";
+		sendMsg(aux, invited);
 
 		std::cout << _clientsCha.find(sFd)->second->getNickname() << " invited " + _clientsCha.find(aux)->second->getNickname() + " to " + _nameChannel + "\r\n"; // Server log
 		//broadcastMsg(_clientsCha.find(sFd)->second->getNickname() + " invited " + _clientsCha.find(aux)->second->getNickname() + " to this channel. " + capacity() + "\r\n", -1);
@@ -228,8 +228,8 @@ void Channel::inviteClient(std::vector<std::string> &args, int sFd) {
 void Channel::removeClient(int fd) {
 	if (hasClient(fd))
 	{
-		std::string msgPart = ":" + _clientsCha.find(fd)->second->getNickname() + " PART " + _nameChannel + "\r\n";
-		sendToAllClients(msgPart);
+		std::string part = ":" + _clientsCha.find(fd)->second->getNickname() + " PART " + _nameChannel + "\r\n";
+		sendToAllClients(part);
 		std::stringstream ss;
 		ss << _clientsCha.find(fd)->second->getNickname() << " left the channel.";
 		_clientsCha.erase(fd);
@@ -292,11 +292,15 @@ void Channel::setTopicRst(int sFd) {
 		{
 			_topicRestr = true;
 			broadcastMsg("This channel's topic was locked by the owner.\r\n", -1);
+			std::string topicLock = ":" + _clientsCha.find(sFd)->second->getNickname() + " MODE " + _nameChannel + " +t\r\n";
+			sendToAllClients(topicLock);
 		}
 		else
 		{
 			_topicRestr = false;
 			broadcastMsg("This channel's topic is now unlocked.\r\n", -1);
+			std::string topicUnlock = ":" + _clientsCha.find(sFd)->second->getNickname() + " MODE " + _nameChannel + " -t\r\n";
+			sendToAllClients(topicUnlock);
 		}
 	} else
 		sendMsg(sFd, "Error: only the owner can lock/unlock channel topics.\r\n");
@@ -307,14 +311,22 @@ void Channel::setKey(int sFd, std::string &key) {
 	if (_keyCha.empty())
 	{
 		_keyCha = key;
+		std::string keyOn = ":" + _clientsCha.find(sFd)->second->getNickname() + " MODE " + _nameChannel + " +k " + key + "\r\n";
+		sendToAllClients(keyOn);
 		broadcastMsg("This channel is now key-protected.\r\n", -1);
 	}
 	else if (!_keyCha.empty() && _keyCha == key)
 	{
 		_keyCha.clear();
 		broadcastMsg("The channel's key was removed.\r\n", -1);
-	} else if (compareKey(key))
+		std::string keyOff = ":" + _clientsCha.find(sFd)->second->getNickname() + " MODE " + _nameChannel + " -k\r\n";
+		sendToAllClients(keyOff);
+	} else if (!compareKey(key))
+	{
 		sendMsg(sFd, "Error: the given key does not match.\r\n");
+		std::string wrongKey = ":127.0.0.1 525 " + _clientsCha.find(sFd)->second->getNickname() + " :Key does not match!\r\n";
+		sendMsg(sFd, wrongKey);
+	}
 	else
 		sendMsg(sFd, "Error: unknown. Please try again\r\n");
 }
@@ -326,15 +338,15 @@ void Channel::setOp(int sFd, std::string &name) {
 		sendMsg(sFd, "Error: client not in channel.\r\n");
 	else if (isOperator(fd))
 	{
-		std::string msgModeRemoveOperator = ":" + _clientsCha.find(sFd)->second->getNickname() + " MODE " + _nameChannel + " -o " + name + "\r\n";
-		sendToAllClients(msgModeRemoveOperator);
+		std::string remOp = ":" + _clientsCha.find(sFd)->second->getNickname() + " MODE " + _nameChannel + " -o " + name + "\r\n";
+		sendToAllClients(remOp);
 		_operatorsCha.erase(std::find(_operatorsCha.begin(), _operatorsCha.end(), fd));
 		broadcastMsg(name + " lost his operator permissions.\r\n", -1);
 	}
 	else
 	{
-		std::string msgModeGiveOperator = ":" + _clientsCha.find(sFd)->second->getNickname() + " MODE " + _nameChannel + " +o " + name + "\r\n";
-		sendToAllClients(msgModeGiveOperator);
+		std::string giveOp = ":" + _clientsCha.find(sFd)->second->getNickname() + " MODE " + _nameChannel + " +o " + name + "\r\n";
+		sendToAllClients(giveOp);
 		_operatorsCha.push_back(fd);
 		broadcastMsg(name + " was made a channel operator.\r\n", -1);
 	}
@@ -462,8 +474,3 @@ bool Channel::parseMessage(const std::string &msg, int sFd) {
 	}
 	return true;
 }
-
- // --------- EXCEPTIONS ---------
- const char *Channel::WrongArgException::what() const throw() {
- 	return "Wrong type of argument for command.";
- }

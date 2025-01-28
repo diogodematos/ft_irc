@@ -101,7 +101,7 @@ void Server::run()
 		}
 		if (poll_c == -1)
 		{
-			std::cerr << "Pool failed" << std::endl;
+			std::cerr << "Poll failed" << std::endl;
 			break;
 		}
 
@@ -290,8 +290,8 @@ void Server::handleClientMsg(int fd, std::string &msg)
 					// std::string mode_message = ":MODE " + arg1 + " +o " + _clients[fd].getNickname() + "\r\n"; // Example: new channel is +n (no external messages) and +t (topic is set by operator)
 					// send(fd, mode_message.c_str(), mode_message.size(), 0);
 
-					std::string topic_message = "TOPIC " + arg1 + " :Welcome to " + arg1 + "!\r\n";
-					send(fd, topic_message.c_str(), topic_message.size(), 0);
+					std::string topic = "TOPIC " + arg1 + " :Welcome to " + arg1 + "!\r\n";
+					send(fd, topic.c_str(), topic.size(), 0);
 				}
 				// if channel exist
 				else if (_channels[arg1].isInvOnly())
@@ -370,8 +370,8 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				{
 					if (_clients[i].getNickname() == arg1)
 					{
-						std::string personal_message = ":" + _clients[fd].getNickname() + " PRIVMSG " + arg1 + " :" + message + "\r\n";
-						send(i, personal_message.c_str(), personal_message.size(), 0);
+						std::string pMessage = ":" + _clients[fd].getNickname() + " PRIVMSG " + arg1 + " :" + message + "\r\n";
+						send(i, pMessage.c_str(), pMessage.size(), 0);
 						check = 1;
 						break;
 					}
@@ -387,8 +387,8 @@ void Server::handleClientMsg(int fd, std::string &msg)
 					else if (_channels.find(arg1) != _channels.end())
 					{
 						
-        				std::string channel_message = ":" + _clients[fd].getNickname() + " PRIVMSG " + arg1 + " " + message + "\r\n";
-						_channels[arg1].broadcastMsg(channel_message, fd);
+        				std::string chanMessage = ":" + _clients[fd].getNickname() + " PRIVMSG " + arg1 + " " + message + "\r\n";
+						_channels[arg1].broadcastMsg(chanMessage, fd);
 					}
 					else
 					{

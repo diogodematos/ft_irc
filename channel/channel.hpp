@@ -67,11 +67,6 @@ public:
 
 	//  ----- Parsing -----
 	bool parseMessage(const std::string &msg, int sFd);
-
-	// ----- Exceptions -----
-	class WrongArgException : std::exception {
-		virtual const char* what() const throw();
-	};
 };
 
 #endif //CHANNEL_HPP
