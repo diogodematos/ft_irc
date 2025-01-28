@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/28 14:12:58 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/28 15:54:38 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -107,7 +107,7 @@ void Server::run()
 
 		for (unsigned int i = 0; i < _poll_fds.size(); i++)
 		{
-			if (_poll_fds[i].revents & POLLIN) // FAZER A TATICA DO ANDRE, 532
+			if (_poll_fds[i].revents & POLLIN)
 			{
 				if (_poll_fds[i].fd == _server_socket)
 				{
@@ -167,17 +167,7 @@ void Server::command(int fd, std::string &msg)
 {
 	_clients[fd].bufferAppend(msg);
 
-	// size_t pos;
-	// while ((pos = _clients[fd].buffer().find("\r\n")) != std::string::npos)
-	// {
-	// 	std::string command = _clients[fd].buffer().substr(0, pos);
-	// 	_clients[fd].clearBuffer();
-	// 	handleClientMsg(fd, command);
-	// }
-
 	std::vector<std::string> command;
-	std::string cmd;
-	std::istringstream iss(_clients[fd].buffer());
 	if (_clients[fd].buffer().find("\r\n") != std::string::npos)
 	{
 		std::string cmd;
@@ -196,14 +186,6 @@ void Server::command(int fd, std::string &msg)
 		_clients[fd].clearBuffer();
 	}
 }
-
-// void Server::sendToAllClients(const std::string &msg)
-// {
-// 	for (unsigned int i = 0; i < _clients.size(); i++)
-// 	{
-// 		send(_clients[i].getFd(), msg.c_str(), msg.size(), 0);
-// 	}
-// }
 
 void Server::handleClientMsg(int fd, std::string &msg)
 {
@@ -335,8 +317,6 @@ void Server::handleClientMsg(int fd, std::string &msg)
 					else
 					{
 						_channels[arg1].addClient(fd, &_clients[fd]);
-						//std::string join_message = ":" + _clients[fd].getNickname() + " JOIN " + arg1 + "\r\n";
-						//_channels[arg1].sendToAllClients(join_message);  // Notify all clients of the new channel
 						std::string response = "Joined Channel " + arg1 + "\r\n";
 						send(fd, response.c_str(), response.size(), 0);
 						std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << arg1 << "." << std::endl;
@@ -345,8 +325,6 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				else
 				{
 					_channels[arg1].addClient(fd, &_clients[fd]);
-					//std::string join_message = ":" + _clients[fd].getNickname() + " JOIN " + arg1 + "\r\n";
-					//_channels[arg1].sendToAllClients(join_message);  // Notify all clients of the new channel
 					std::string response = "Joined Channel " + arg1 + "\r\n";
 					send(fd, response.c_str(), response.size(), 0);
 					std::cout << "Client " << _clients[fd].getNickname() << " joined channel " << arg1 << "." << std::endl;
@@ -392,7 +370,7 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				{
 					if (_clients[i].getNickname() == arg1)
 					{
-						std::string personal_message = ":" + _clients[fd].getNickname() + " PRIVMSG " + arg1 + " " + message + "\r\n";
+						std::string personal_message = ":" + _clients[fd].getNickname() + " PRIVMSG " + arg1 + " :" + message + "\r\n";
 						send(i, personal_message.c_str(), personal_message.size(), 0);
 						check = 1;
 						break;
@@ -434,27 +412,29 @@ void Server::handleClientMsg(int fd, std::string &msg)
 				{
 					if (_channels[arg2].isOperator(fd) || _channels[arg2].isOwner(fd))
 					{
-						for (int i = 0; i < (int)_clients.size(); i++)
+						for (unsigned int i = 0; i < _clients.size(); i++)
 						{
 							if (_clients[i].getNickname() == arg1)
 							{
 								if (_clients[i].getUsername().empty())
 								{
-									std::string error = "You need to set a username first!\r\n";
+									std::string error = arg1 + " needs to set a username first!\r\n";
 									send(fd, error.c_str(), error.size(), 0);
+									break;
 								}
 								else
 								{
 									_channels[arg2].inviteClient(fd, &_clients[i]);
 									if (!_channels[arg2].parseMessage(msg, fd))
 									Channel::sendMsg(fd, "Error: Command not found!\r\n");
+									break;
 								}
 							}
-							/*if (_clients[i].getNickname() != arg1 && i == _clients.size()-1)
+							else if (i == _clients.size()-1)
 							{
-								std::string error = "Error: Client Invited don't exists!\r\n";
+								std::string error = "Error: Client Invited doesn't exist!\r\n";
 								send(fd, error.c_str(), error.size(), 0);
-							}*/
+							}
 						}
 							
 					}
