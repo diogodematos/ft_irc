@@ -6,7 +6,7 @@
 /*   By: dcarrilh <dcarrilh@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/14 10:46:32 by dcarrilh          #+#    #+#             */
-/*   Updated: 2025/01/28 12:23:40 by dcarrilh         ###   ########.fr       */
+/*   Updated: 2025/01/28 14:12:58 by dcarrilh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -423,7 +423,12 @@ void Server::handleClientMsg(int fd, std::string &msg)
 
 		else if (msg.rfind("KICK ", 0) == 0 || msg.rfind("TOPIC ", 0) == 0 || msg.rfind("MODE ", 0) == 0 || msg.rfind("INVITE ", 0) == 0)
 {
-			if (command == "INVITE")
+			if (command == "MODE" && arg1 == "#42" && arg2.size() == 0)
+			{
+				int i;
+				i = 0;
+			}
+			else if (command == "INVITE")
 			{
 				if (_channels.find(arg2) != _channels.end())
 				{
