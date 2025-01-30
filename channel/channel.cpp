@@ -112,12 +112,6 @@ void Channel::addClient(int sFd, Client *client) {
 		std::cerr << "Error: Attempted to add a null client to the channel." << std::endl; // server log
 }
 
-/*void Channel::removeClient(int fd) {
-*//*	if (isOperator(fd))
-		_operatorsCha.;*//*
-	_clientsCha.erase(fd);
-}*/
-
 bool Channel::hasClient(int fd) const {
 	return _clientsCha.find(fd) != _clientsCha.end();
 }
@@ -163,21 +157,29 @@ void Channel::kickClient(std::vector<std::string> &rest, int sFd) {
 
 void Channel::changeTopic(std::vector<std::string> &rest, int sFd) {
 	std::string tmp = "Channel topic was changed successfully.\r\n";
-	if (isOwner(sFd))
-		_topicChannel = rest[2];
-	else if (isOperator(sFd))
-	{
-		if (isTopicRestr())
-			tmp = "Error: channel topic cannot be changed.\r\n";
-		else
-		{
+	if( rest.size() > 2)
+	{	
+		if (isOwner(sFd))
 			_topicChannel = rest[2];
-			std::string topic = "TOPIC " + _nameChannel + " :" + _topicChannel + "\r\n";
-			sendToAllClients(topic);
+		else if (isOperator(sFd))
+		{
+			if (isTopicRestr())
+				tmp = "Error: channel topic cannot be changed.\r\n";
+			else
+			{
+				_topicChannel = rest[2];
+				std::string topic = "TOPIC " + _nameChannel + " :" + _topicChannel + "\r\n";
+				sendToAllClients(topic);
+			}
 		}
+		else
+			tmp = "Error: only operators or owners can change the topic.\r\n";
 	}
 	else
-		tmp = "Error: only operators or owners can change the topic.\r\n";
+	{
+		std::string topic = "TOPIC " + _nameChannel + " :" + _topicChannel + "\r\n";
+		tmp = topic;
+	}
 	sendMsg(sFd, tmp);
 }
 
@@ -191,9 +193,6 @@ void Channel::inviteClient(int sFd, Client *client) {
 	{
 		if (isOperator(sFd) || isOwner(sFd))
 		{
-			/*broadcastMsg(_clientsCha.find(sFd)->second->getNickname() + " invited " + client->getNickname() + " to this channel. " + capacity() + "\r\n", -1);
-			sendMsg(client->getFd(), _clientsCha.find(sFd)->second->getNickname() + " added you to this channel.\r\n");*/
-			//_clientsCha[client->getFd()] = client; // Store the pointer
 			addClient(client->getFd(), client);
 			success = true;
 		}
@@ -285,6 +284,10 @@ void Channel::setInvOnly() {
 	}
 }
 
+void Channel::setTopic(std::string topic)
+{
+	_topicChannel = topic;
+}
 void Channel::setTopicRst(int sFd) {
 	if (isOwner(sFd))
 	{

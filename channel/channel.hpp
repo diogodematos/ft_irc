@@ -46,6 +46,7 @@ public:
 	bool canAddUsr();
 	size_t activeUsers() const;
 	std::string capacity();
+	void setTopic(std::string topic);
 
 	// ----- Client Info -----
 	void inviteClient(int sFd, Client *client);
